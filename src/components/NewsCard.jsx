@@ -66,12 +66,21 @@ export default function NewsCard({ news }) {
   
   const sourceDomain = getDomainName(news.link) || news.sourceName || 'Bilinmeyen Kaynak';
 
+  const [imageError, setImageError] = useState(false);
+
   return (
     <article className="news-card fade-in">
       {/* Eğer resim varsa göster, yoksa modern bir placeholder ver */}
       <div className="card-image-container">
-        {news.imageUrl ? (
-          <img src={news.imageUrl} alt={news.title} className="card-image" loading="lazy" />
+        {news.imageUrl && !imageError ? (
+          <img 
+            src={news.imageUrl} 
+            alt={news.title} 
+            className="card-image" 
+            loading="lazy" 
+            referrerPolicy="no-referrer"
+            onError={() => setImageError(true)}
+          />
         ) : (
           <div className="card-no-image">
             <ImageOff size={40} opacity={0.3} />

@@ -21,6 +21,12 @@ export const fetchRssFeed = async (url) => {
       cleanUrl += (cleanUrl.includes('?') ? '&' : '?') + 'bypass=' + new Date().getTime();
     }
 
+    // Euronews gibi sitelerde '?format=itunes' gibi karmaşık eklentiler sonsuz döngüye girip "414 URI Too Long" hatası atabiliyor. 
+    // Linkin sonundaki çöpü tırpanlayıp, doğrudan ana listeyi çekiyoruz.
+    if (cleanUrl.includes('euronews.com')) {
+      cleanUrl = cleanUrl.split('?')[0]; 
+    }
+
     const response = await fetch(cleanUrl, { 
       cache: 'default',
       headers: {
@@ -71,8 +77,9 @@ export const fetchRssFeed = async (url) => {
       }
       
       // Tarih Parsing (RSS: pubDate, Atom: published/updated)
-      const pubDateStr = item.querySelector('pubDate')?.textContent || item.querySelector('published')?.textContent || item.querySelector('updated')?.textContent || new Date().toISOString();
-      const localDate = new Date(pubDateStr); // Otomatik olarak sistem local saatine dönüştürülür.
+      let pubDateStr = item.querySelector('pubDate')?.textContent || item.querySelector('published')?.textContent || item.querySelector('updated')?.textContent || new Date().toISOString();
+      
+      const localDate = new Date(pubDateStr); // Otomatik olarak sistem local saatine (Örn: +3) dönüştürülür.
 
       // Görsel çekimi (Kapsamlı RSS Image Scraper)
       let imageUrl = null;
@@ -90,11 +97,22 @@ export const fetchRssFeed = async (url) => {
       } else if (enclosure && enclosure.getAttribute('url')) {
           // Tip kontrolü yapmadan çekeriz çünkü bazı RSS'ler yanlış tipler dönebiliyor.
         imageUrl = enclosure.getAttribute('url');
-      } else if (imageNodeUrl && imageNodeUrl.textContent) {
+      } else if (imageNodeUrl && imageNodeUrl.textContent && imageNodeUrl.textContent.match(/https?:\/\//i)) {
         imageUrl = imageNodeUrl.textContent.trim().replace('uploadsContents', 'uploads/Contents');
-      } else if (imageNode && imageNode.textContent && imageNode.textContent.startsWith('http')) {
-        imageUrl = imageNode.textContent.trim().replace('uploadsContents', 'uploads/Contents');
-      } else {
+      } else if (imageNode && imageNode.textContent && imageNode.textContent.match(/https?:\/\//i)) {
+        imageUrl = imageNode.textContent.match(/(https?:\/\/[^\s'"><\]]+)/i)[1].replace('uploadsContents', 'uploads/Contents');
+      } 
+      
+      // Eğer üstteki DOM metodları CDATA içeriklerini okuyamadıysa raw (saf) HTML/XML içinden zorla bul:
+      if (!imageUrl && (item.innerHTML || item.outerHTML)) {
+         const rawHtml = item.innerHTML || item.outerHTML;
+         const rawMatch = rawHtml.match(/<image>.*?<!\[CDATA\[\s*(https?:\/\/[^\s\]]+)\s*\]\]>.*?<\/image>/i) || rawHtml.match(/<image>.*?(https?:\/\/[^\s'"><\]]+).*?<\/image>/i);
+         if (rawMatch && rawMatch[1]) {
+            imageUrl = rawMatch[1].replace('uploadsContents', 'uploads/Contents');
+         }
+      }
+      
+      if (!imageUrl) {
         // Description veya content:encoded bölümünde HTML olarak gömülü <img src="..." /> etiketi varsa çek.
         let combinedText = description + (contentEncoded ? contentEncoded.textContent : '');
         const imgRegex = /<img[^>]+src=["'](https?:\/\/[^"']+)["']/i;

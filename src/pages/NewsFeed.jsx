@@ -51,6 +51,22 @@ export default function NewsFeed() {
           }
         }
 
+        // Mükemmel Tekilleştirme (Deduplication) Adımı:
+        // Farklı kategorilerden veya kaynaklardan gelen tamamen aynı haberleri filtrele
+        const uniqueKeys = new Set();
+        feedData = feedData.filter(item => {
+           // Bazı haber linklerinin sonuna "?utm_source" gibi farklı izleme kodları eklenebilir. 
+           // Farklı linkteymiş gibi davranmasını engellemek için "?" öncesini alıyoruz.
+           const rawLink = item.link && item.link !== '#' ? item.link.split('?')[0] : '';
+           const uniqueKey = item.title.trim().toLowerCase() + "||" + rawLink;
+           
+           if (uniqueKeys.has(uniqueKey)) {
+              return false; // Aynı haber daha önce eklenmiş, bunu atla.
+           }
+           uniqueKeys.add(uniqueKey);
+           return true; // Benzersiz haber, listeye dahil et.
+        });
+
         // Gelen veriyi Tarihe Göre (En yeniler en üstte) sıralıyoruz.
         // Hatalı veya gelecekteki (bozuk) tarihleri süzmek için ekstra kontroller:
         const now = new Date().getTime() + (24 * 60 * 60 * 1000); // Max yarınki tarihe kadar izin ver.
