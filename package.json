@@ -1,0 +1,54 @@
+{
+  "name": "rss-okuyucu",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "electron.cjs",
+  "scripts": {
+    "dev-react": "vite",
+    "dev-electron": "cross-env IS_DEV=true wait-on http://localhost:5173 && electron .",
+    "dev": "concurrently \"npm run dev-react\" \"npm run dev-electron\"",
+    "build": "vite build",
+    "lint": "eslint .",
+    "pack-win": "npm run build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.rssokuyucu.app",
+    "productName": "Rss Hub",
+    "directories": {
+      "output": "pack"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "dist/**/*",
+      "electron.cjs"
+    ]
+  },
+  "dependencies": {
+    "jsdom": "^29.0.2",
+    "lucide-react": "^1.8.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.14.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@electron/packager": "^19.1.0",
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^41.2.0",
+    "electron-builder": "^26.8.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "vite": "^8.0.4",
+    "wait-on": "^9.0.5"
+  }
+}
