@@ -1,10 +1,13 @@
-# Build Trigger: 2026-04-17T17:10
+# Build Trigger: 2026-04-17T17:20 - Enable Releases
 name: "Gündemim Multi-Platform Build"
 
 on:
   push:
     branches: [ "main", "master" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   # ==========================================
@@ -29,6 +32,8 @@ jobs:
         
       - name: Build Windows App
         run: npm run pack-win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
@@ -104,10 +109,9 @@ jobs:
       - name: Build Web Assets
         run: npm run build
         
-      - name: Capacitor Sync & Pods
+      - name: Capacitor Sync (SPM)
         run: |
           npm run ios-sync
-          cd ios/App && pod install --repo-update
         
       - name: Build iOS Project (Check Only)
         run: |

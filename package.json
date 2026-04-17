@@ -10,7 +10,7 @@
     "dev": "concurrently \"npm run dev-react\" \"npm run dev-electron\"",
     "build": "vite build",
     "lint": "eslint .",
-    "pack-win": "npm run build && electron-builder --win -c.publish=never",
+    "pack-win": "npm run build && electron-builder --win",
     "android-sync": "cap sync android",
     "ios-sync": "cap sync ios"
   },
@@ -22,10 +22,8 @@
     },
     "win": {
       "target": ["nsis", "portable"],
-      "icon": "resources/icon.png",
-      "publish": null
+      "icon": "resources/icon.png"
     },
-    "publish": null,
     "files": [
       "dist/**/*",
       "electron.cjs"
