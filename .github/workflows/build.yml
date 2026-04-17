@@ -30,8 +30,6 @@ jobs:
         
       - name: Build Windows App
         run: npm run pack-win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
