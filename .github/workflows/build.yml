@@ -111,6 +111,11 @@ jobs:
         
       - name: Capacitor Sync (SPM)
         run: |
+          # Create a dummy Podfile if it doesn't exist to satisfy Capacitor's sync check
+          if [ ! -f ios/App/Podfile ]; then
+            echo "platform :ios, '13.0'" > ios/App/Podfile
+            echo "target 'App' do; end" >> ios/App/Podfile
+          fi
           npm run ios-sync
         
       - name: Build iOS Project (Check Only)
