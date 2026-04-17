@@ -1,4 +1,4 @@
-# Build Trigger: 2026-04-17T15:30
+# Build Trigger: 2026-04-17T17:10
 name: "Gündemim Multi-Platform Build"
 
 on:
@@ -18,7 +18,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.13.1'
+          check-latest: true
           
       - name: Clean Install
         shell: powershell
@@ -46,8 +47,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      
+          node-version: '22.13.1'
+          check-latest: true
+          
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -63,7 +65,7 @@ jobs:
         run: npm run build
         
       - name: Capacitor Sync Android
-        run: npx cap sync android
+        run: npm run android-sync
         
       - name: Set Executable Permissions
         run: chmod +x android/gradlew
@@ -89,7 +91,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.13.1'
+          check-latest: true
           
       - name: Clean Install
         run: |
@@ -101,7 +104,7 @@ jobs:
         
       - name: Capacitor Sync & Pods
         run: |
-          npx cap sync ios
+          npm run ios-sync
           cd ios/App && pod install
         
       - name: Build iOS Project (Check Only)
