@@ -2,6 +2,8 @@
   "name": "gundemim",
   "private": true,
   "version": "0.1.0",
+  "description": "Gündemim - Yeni Nesil Kişiselleştirilmiş RSS ve Haber Okuyucu",
+  "author": "OmerCanInan",
   "type": "module",
   "main": "electron.cjs",
   "scripts": {
