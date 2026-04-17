@@ -58,6 +58,7 @@ jobs:
           
       - name: Clean Install
         run: |
+          npm install -g npm@latest
           rm -f package-lock.json
           npm install
         
@@ -96,6 +97,7 @@ jobs:
           
       - name: Clean Install
         run: |
+          npm install -g npm@latest
           rm -f package-lock.json
           npm install
         
@@ -105,7 +107,7 @@ jobs:
       - name: Capacitor Sync & Pods
         run: |
           npm run ios-sync
-          cd ios/App && pod install
+          cd ios/App && pod install --repo-update
         
       - name: Build iOS Project (Check Only)
         run: |
