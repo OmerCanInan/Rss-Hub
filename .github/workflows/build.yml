@@ -61,6 +61,11 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
           
+      - name: Java Diagnostics
+        run: |
+          java -version
+          echo "JAVA_HOME: $JAVA_HOME"
+          
       - name: Clean Install
         run: |
           npm install -g npm@latest
