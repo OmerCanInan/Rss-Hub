@@ -1,138 +1,210 @@
-import React from 'react';
-import { PlusCircle, CheckCircle, Globe, AlertCircle, Package, Download, Folder, Search } from 'lucide-react';
+import { PlusCircle, CheckCircle, Globe, AlertCircle, Package, Download, Folder, Search, Eye, X } from 'lucide-react';
 import { getRssLinks, addRssLink } from '../services/dbService';
 import { useState, useEffect } from 'react';
 
 // Sabit keşfet listemiz - Buraya istenildiği kadar site eklenebilir.
+// Sabit keşfet listemiz - Buraya istenildiği kadar site eklenebilir.
 const DISCOVER_FEEDS = [
+  { folder: "Haber & Gündem", feeds: [
+    { name: "TRT Haber", url: "https://www.trthaber.com/sondakika_ilan.rss" },
+    { name: "NTV Son Dakika", url: "https://www.ntv.com.tr/son-dakika.rss" },
+    { name: "Sözcü", url: "https://www.sozcu.com.tr/rss" },
+    { name: "Cumhuriyet", url: "https://www.cumhuriyet.com.tr/rss" },
+    { name: "BirGün", url: "https://www.birgun.net/xml/rss.xml" },
+    { name: "Gazete Duvar", url: "https://www.gazeteduvar.com.tr/rss" },
+    { name: "T24", url: "https://t24.com.tr/rss" },
+    { name: "Diken", url: "https://www.diken.com.tr/feed/" },
+    { name: "Habertürk", url: "https://www.haberturk.com/rss" },
+    { name: "Hürriyet", url: "https://www.hurriyet.com.tr/rss/anasayfa" },
+    { name: "BBC Türkçe", url: "https://feeds.bbci.co.uk/turkce/rss.xml" },
+    { name: "Medyascope", url: "https://medyascope.tv/feed/" },
+    { name: "Euronews TR", url: "https://tr.euronews.com/rss?level=vertical&name=turkey" },
+    { name: "Milliyet", url: "https://www.milliyet.com.tr/rss/rsshesapla.xml?anakategoriid=1" },
+    { name: "Karar Gazetesi", url: "https://www.karar.com/rss.xml" },
+    { name: "Anadolu Ajansı", url: "https://www.aa.com.tr/tr/rss/default?cat=guncel" }
+  ]},
+  { folder: "Oyun Sektörü", feeds: [
+    { name: "Turuncu Levye", url: "https://www.turunculevye.com/feed/" },
+    { name: "Technopat Oyun", url: "https://www.technopat.net/sosyal/bolum/oyun-haberleri.11/index.rss" },
+    { name: "IGN Türkiye", url: "https://tr.ign.com/feed.xml" },
+    { name: "FRPNET", url: "https://frpnet.net/feed/" },
+    { name: "Kayıp Rıhtım", url: "https://kayiprihtim.com/feed/" },
+    { name: "Multiplayer", url: "https://multiplayer.com.tr/feed/" },
+    { name: "Merlin'in Kazanı", url: "https://www.merlininkazani.com/rss" },
+    { name: "Eurogamer", url: "https://www.eurogamer.net/rss" },
+    { name: "PC Gamer", url: "https://www.pcgamer.com/rss/" },
+    { name: "Polygon", url: "https://www.polygon.com/rss/index.xml" }
+  ]},
   { folder: "Teknoloji", feeds: [
     { name: "DonanımHaber", url: "https://www.donanimhaber.com/rss/tum" },
     { name: "Webtekno", url: "https://www.webtekno.com/rss.xml" },
     { name: "ShiftDelete", url: "https://shiftdelete.net/feed" },
     { name: "LOG Dergisi", url: "https://www.log.com.tr/feed/" },
+    { name: "Hwp (Hardware Plus)", url: "https://hwp.com.tr/feed" },
+    { name: "TechInside", url: "https://www.techinside.com/feed/" },
+    { name: "Megabayt", url: "https://megabayt.com/feed/" },
     { name: "The Verge", url: "https://www.theverge.com/rss/index.xml" },
     { name: "TechCrunch", url: "https://techcrunch.com/feed/" },
     { name: "Wired", url: "https://www.wired.com/feed/rss" }
   ]},
-  { folder: "Ekonomi", feeds: [
+  { folder: "Ekonomi & Finans", feeds: [
     { name: "Bloomberg HT", url: "https://www.bloomberght.com/rss" },
-    { name: "Borsagündem", url: "https://www.borsagundem.com.tr/rss" },
     { name: "Ekonomim", url: "https://www.ekonomim.com/rss" },
-    { name: "CNBC International", url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?profile=12000000&id=10000664" },
+    { name: "Para Analiz", url: "https://www.paranaliz.com/feed/" },
+    { name: "Borsagündem", url: "https://www.borsagundem.com.tr/rss" },
+    { name: "Dünya Gazetesi", url: "https://www.dunya.com/rss" },
+    { name: "Bigpara", url: "https://bigpara.hurriyet.com.tr/rss/sondakika.xml" },
+    { name: "Investing.com TR", url: "https://tr.investing.com/rss/news.rss" },
     { name: "Financial Times", url: "https://www.ft.com/?format=rss" }
   ]},
-  { folder: "Haber & Gündem", feeds: [
-    { name: "TRT Haber", url: "https://www.trthaber.com/sondakika_ilan.rss" },
-    { name: "NTV", url: "https://www.ntv.com.tr/son-dakika.rss" },
-    { name: "Hürriyet", url: "https://www.hurriyet.com.tr/rss/anasayfa" },
-    { name: "Habertürk", url: "https://www.haberturk.com/rss" },
-    { name: "Sözcü", url: "https://www.sozcu.com.tr/rss" },
-    { name: "BBC Türkçe", url: "https://feeds.bbci.co.uk/turkce/rss.xml" },
-    { name: "New York Times", url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
-    { name: "Al Jazeera", url: "https://www.aljazeera.com/xml/rss/all.xml" }
+  { folder: "Kripto Para", feeds: [
+    { name: "Koin Bülteni", url: "https://koinbulteni.com/feed" },
+    { name: "Muhabbit", url: "https://muhabbit.com/feed/" },
+    { name: "BTCHaber", url: "https://www.btchaber.com/feed/" },
+    { name: "Kriptokoin", url: "https://kriptokoin.com/feed/" },
+    { name: "CoinDesk", url: "https://www.coindesk.com/arc/outboundfeeds/rss/" },
+    { name: "Cointelegraph", url: "https://cointelegraph.com/rss" }
   ]},
   { folder: "Spor", feeds: [
     { name: "Beinsports", url: "https://www.beinsports.com.tr/rss/haber" },
     { name: "NTV Spor", url: "https://www.ntvspor.net/rss" },
+    { name: "Fanatik", url: "https://www.fanatik.com.tr/rss" },
     { name: "Fotomaç", url: "https://www.fotomac.com.tr/rss/tum" },
     { name: "Sporx", url: "https://www.sporx.com/rss/" },
-    { name: "Fanatik", url: "https://www.fanatik.com.tr/rss" }
-  ]},
-  { folder: "Oyun & Kültür", feeds: [
-    { name: "Kayıp Rıhtım", url: "https://kayiprihtim.com/feed/" },
-    { name: "IGN Türkiye", url: "https://tr.ign.com/feed.xml" },
-    { name: "Polygon", url: "https://www.polygon.com/rss/index.xml" },
-    { name: "Eurogamer", url: "https://www.eurogamer.net/rss" }
-  ]},
-  { folder: "Bilim & Uzay", feeds: [
-    { name: "NASA Haberleri", url: "https://www.nasa.gov/feed/" },
-    { name: "Science Daily", url: "https://www.sciencedaily.com/rss/all.xml" },
-    { name: "Space.com", url: "https://www.space.com/feeds/all" },
-    { name: "National Geographic", url: "https://www.nationalgeographic.com/rss/index.xml" }
+    { name: "Ajansspor", url: "https://ajansspor.com/rss" },
+    { name: "Mackolik", url: "https://www.mackolik.com/rss" }
   ]},
   { folder: "Otomobil", feeds: [
-    { name: "DonanımHaber Otomobil", url: "https://www.donanimhaber.com/rss/otomobil" },
-    { name: "Log Otomobil", url: "https://www.log.com.tr/kategori/otomobil/feed/" },
+    { name: "DonanımHaber Oto", url: "https://www.donanimhaber.com/rss/otomobil" },
     { name: "Motor1 Türkiye", url: "https://tr.motor1.com/rss/all/all/" },
-    { name: "Top Gear", url: "https://www.topgear.com/rss/news" }
-  ]},
-  { folder: "Yaşam & Sağlık", feeds: [
-    { name: "BBC News - Health", url: "https://feeds.bbci.co.uk/news/health/rss.xml" },
-    { name: "Men's Health", url: "https://www.menshealth.com/rss/all.xml" },
-    { name: "Psychology Today", url: "https://www.psychologytoday.com/intl/taxonomy/term/1053/feed" }
+    { name: "Otoshow", url: "https://www.otoshow.com.tr/feed/" },
+    { name: "Log Otomobil", url: "https://www.log.com.tr/kategori/otomobil/feed/" }
   ]}
 ];
 
 // HAZIR PAKETLER - Tek tıkla tüm kaynakları yükler
 const READY_PACKAGES = [
   {
-    name: "Türkiye Haber Siteleri",
-    emoji: "🇹🇷",
-    description: "Türkiye merkezli büyük haber kaynakları",
-    color: "#e11d48",
-    folder: "Türkiye Haber Siteleri",
+    name: "Oyun Sektörü Dev Paket",
+    emoji: "🎮",
+    description: "Turuncu Levye, IGN, FRPNET ve buralardaki en iyi oyun kanalları",
+    color: "#8b5cf6",
+    folder: "Oyun Sektörü",
     feeds: [
-      "https://www.trthaber.com/sondakika_ilan.rss",
-      "https://www.ntv.com.tr/son-dakika.rss",
-      "https://www.hurriyet.com.tr/rss/anasayfa",
-      "https://www.haberturk.com/rss",
-      "https://www.sozcu.com.tr/rss",
-      "https://feeds.bbci.co.uk/turkce/rss.xml"
+      { name: "Turuncu Levye", url: "https://www.turunculevye.com/feed/" },
+      { name: "IGN Türkiye", url: "https://tr.ign.com/feed.xml" },
+      { name: "FRPNET", url: "https://frpnet.net/feed/" },
+      { name: "Kayıp Rıhtım", url: "https://kayiprihtim.com/feed/" },
+      { name: "Multiplayer", url: "https://multiplayer.com.tr/feed/" },
+      { name: "Merlin'in Kazanı", url: "https://www.merlininkazani.com/rss" },
+      { name: "Eurogamer", url: "https://www.eurogamer.net/rss" },
+      { name: "Technopat Oyun", url: "https://www.technopat.net/sosyal/bolum/oyun-haberleri.11/index.rss" }
     ]
   },
   {
-    name: "Teknoloji Paketi",
-    emoji: "💻",
-    description: "Yazılım, donanım ve yeni ürünler",
-    color: "#6366f1",
+    name: "Türkiye Medya Devi",
+    emoji: "🗞️",
+    description: "TRT, NTV, Sözcü, Cumhuriyet ve daha fazlası (8 Kaynak)",
+    color: "#e11d48",
+    folder: "Haber & Gündem",
+    feeds: [
+      { name: "TRT Haber", url: "https://www.trthaber.com/sondakika_ilan.rss" },
+      { name: "NTV Son Dakika", url: "https://www.ntv.com.tr/son-dakika.rss" },
+      { name: "Sözcü", url: "https://www.sozcu.com.tr/rss" },
+      { name: "Cumhuriyet", url: "https://www.cumhuriyet.com.tr/rss" },
+      { name: "BirGün", url: "https://www.birgun.net/xml/rss.xml" },
+      { name: "Gazete Duvar", url: "https://www.gazeteduvar.com.tr/rss" },
+      { name: "T24", url: "https://t24.com.tr/rss" },
+      { name: "Habertürk", url: "https://www.haberturk.com/rss" }
+    ]
+  },
+  {
+    name: "Teknoloji Maksimum",
+    emoji: "⚡",
+    description: "DonanımHaber'den The Verge'e kadar her şey",
+    color: "#2563eb",
     folder: "Teknoloji",
     feeds: [
-      "https://www.donanimhaber.com/rss/tum",
-      "https://www.webtekno.com/rss.xml",
-      "https://shiftdelete.net/feed",
-      "https://www.log.com.tr/feed/",
-      "https://www.theverge.com/rss/index.xml",
-      "https://techcrunch.com/feed/"
+      { name: "DonanımHaber", url: "https://www.donanimhaber.com/rss/tum" },
+      { name: "Webtekno", url: "https://www.webtekno.com/rss.xml" },
+      { name: "ShiftDelete", url: "https://shiftdelete.net/feed" },
+      { name: "LOG Dergisi", url: "https://www.log.com.tr/feed/" },
+      { name: "Hardware Plus", url: "https://hwp.com.tr/feed" },
+      { name: "Technopat", url: "https://www.technopat.net/feed/" },
+      { name: "The Verge", url: "https://www.theverge.com/rss/index.xml" },
+      { name: "TechCrunch", url: "https://techcrunch.com/feed/" }
     ]
   },
   {
-    name: "Dünya Gündemi",
-    emoji: "🌍",
-    description: "Uluslararası haber ajansları",
-    color: "#0ea5e9",
-    folder: "Dünya",
-    feeds: [
-      "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
-      "https://www.aljazeera.com/xml/rss/all.xml",
-      "https://feeds.bbci.co.uk/turkce/rss.xml",
-      "https://www.wired.com/feed/rss"
-    ]
-  },
-  {
-    name: "Ekonomi & Finans",
-    emoji: "📈",
-    description: "Borsa, döviz ve piyasa haberleri",
-    color: "#10b981",
+    name: "Finans & Borsa Pro",
+    emoji: "🏙️",
+    description: "Bloomberg, Ekonomim, Borsagündem ve Para Analiz",
+    color: "#059669",
     folder: "Ekonomi",
     feeds: [
-      "https://www.bloomberght.com/rss",
-      "https://www.borsagundem.com.tr/rss",
-      "https://www.ekonomim.com/rss",
-      "https://search.cnbc.com/rs/search/combinedcms/view.xml?profile=12000000&id=10000664"
+      { name: "Bloomberg HT", url: "https://www.bloomberght.com/rss" },
+      { name: "Ekonomim", url: "https://www.ekonomim.com/rss" },
+      { name: "Para Analiz", url: "https://www.paranaliz.com/feed/" },
+      { name: "Borsagündem", url: "https://www.borsagundem.com.tr/rss" },
+      { name: "Dünya Gazetesi", url: "https://www.dunya.com/rss" },
+      { name: "Bigpara", url: "https://bigpara.hurriyet.com.tr/rss/sondakika.xml" },
+      { name: "Investing TR", url: "https://tr.investing.com/rss/news.rss" },
+      { name: "Financial Times", url: "https://www.ft.com/?format=rss" }
     ]
   },
   {
-    name: "Spor Merkezi",
-    emoji: "⚽",
-    description: "Süper Lig, Avrupa ve transfer haberleri",
+    name: "Kripto & Web3 Dünyası",
+    emoji: "₿",
+    description: "Altcoin ve Blockchain haberleri",
     color: "#f59e0b",
-    folder: "Spor",
+    folder: "Kripto Para",
     feeds: [
-      "https://www.beinsports.com.tr/rss/haber",
-      "https://www.ntvspor.net/rss",
-      "https://www.fotomac.com.tr/rss/tum",
-      "https://www.sporx.com/rss/",
-      "https://www.fanatik.com.tr/rss"
+      { name: "Koin Bülteni", url: "https://koinbulteni.com/feed" },
+      { name: "Muhabbit", url: "https://muhabbit.com/feed/" },
+      { name: "BTCHaber", url: "https://www.btchaber.com/feed/" },
+      { name: "Kriptokoin", url: "https://kriptokoin.com/feed/" },
+      { name: "CoinDesk", url: "https://www.coindesk.com/arc/outboundfeeds/rss/" },
+      { name: "Cointelegraph", url: "https://cointelegraph.com/rss" }
+    ]
+  },
+  {
+    name: "Bilim & Uzay Meraklısı",
+    emoji: "🚀",
+    description: "NASA, Bilim ve Evren haberleri",
+    color: "#6d28d9",
+    folder: "Bilim & Uzay",
+    feeds: [
+      { name: "NASA", url: "https://www.nasa.gov/feed/" },
+      { name: "Science Daily", url: "https://www.sciencedaily.com/rss/all.xml" },
+      { name: "Space.com", url: "https://www.space.com/feeds/all" },
+      { name: "National Geographic", url: "https://www.nationalgeographic.com/rss/index.xml" }
+    ]
+  },
+  {
+    name: "Otomobil Dünyası",
+    emoji: "🏎️",
+    description: "Test sürüşleri ve yeni modeller",
+    color: "#b91c1c",
+    folder: "Otomobil",
+    feeds: [
+      { name: "DonanımHaber Oto", url: "https://www.donanimhaber.com/rss/otomobil" },
+      { name: "Motor1 Türkiye", url: "https://tr.motor1.com/rss/all/all/" },
+      { name: "Log Otomobil", url: "https://www.log.com.tr/kategori/otomobil/feed/" },
+      { name: "Otoshow", url: "https://www.otoshow.com.tr/feed/" }
+    ]
+  },
+  {
+    name: "Dünya Basını (Global)",
+    emoji: "🌎",
+    description: "Global haber ajansları (İngilizce)",
+    color: "#374151",
+    folder: "Dünya Basını",
+    feeds: [
+      { name: "NY Times", url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
+      { name: "Al Jazeera", url: "https://www.aljazeera.com/xml/rss/all.xml" },
+      { name: "The Guardian", url: "https://www.theguardian.com/world/rss" },
+      { name: "BBC World", url: "https://feeds.bbci.co.uk/news/world/rss.xml" },
+      { name: "Wired", url: "https://www.wired.com/feed/rss" }
     ]
   }
 ];
@@ -140,6 +212,7 @@ const READY_PACKAGES = [
 export default function Discover() {
   const [activeLinks, setActiveLinks] = useState([]);
   const [selectedFeed, setSelectedFeed] = useState(null); // Modal açık/kapalı/veri
+  const [viewingPackage, setViewingPackage] = useState(null); // Paket detayı modalı
   const [folderInput, setFolderInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
@@ -204,8 +277,8 @@ export default function Discover() {
 
   const handleInstallPackage = (pkg) => {
     let addedCount = 0;
-    pkg.feeds.forEach(feedUrl => {
-      const result = addRssLink(feedUrl, pkg.folder);
+    pkg.feeds.forEach(feed => {
+      const result = addRssLink(feed.url, pkg.folder);
       if (result) addedCount++;
     });
     
@@ -220,7 +293,7 @@ export default function Discover() {
   };
 
   const getPackageStatus = (pkg) => {
-    const addedFeeds = pkg.feeds.filter(url => activeLinks.includes(url));
+    const addedFeeds = pkg.feeds.filter(feed => activeLinks.includes(feed.url));
     if (addedFeeds.length === pkg.feeds.length) return 'installed';
     if (addedFeeds.length > 0) return 'partial';
     return 'available';
@@ -280,38 +353,72 @@ export default function Discover() {
         <h3 style={{ fontSize: '1.2rem', color: 'var(--text-color)', marginBottom: '1.2rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Package size={20} /> Hazır Paketler
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+        <div style={{ 
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' 
+        }}>
           {READY_PACKAGES.map((pkg, idx) => {
             const status = getPackageStatus(pkg);
             return (
               <div key={idx} style={{
                 background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
-                borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem',
-                transition: 'all 0.2s', borderTop: `3px solid ${pkg.color}`,
-                boxShadow: 'var(--shadow-card)'
-              }}>
-                <div style={{ fontSize: '2rem' }}>{pkg.emoji}</div>
-                <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-color)' }}>{pkg.name}</h4>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-light)', lineHeight: '1.4' }}>
-                  {pkg.description} • {pkg.feeds.length} kaynak
-                </p>
-                <button
-                  onClick={() => handleInstallPackage(pkg)}
-                  disabled={status === 'installed'}
-                  style={{
-                    marginTop: 'auto', padding: '0.7rem', borderRadius: '8px', border: 'none',
-                    cursor: status === 'installed' ? 'default' : 'pointer', fontWeight: '600', fontSize: '0.9rem',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                    transition: 'all 0.2s',
-                    background: status === 'installed' ? 'var(--bg-hover)' : pkg.color,
-                    color: status === 'installed' ? 'var(--text-light)' : '#fff',
-                    opacity: status === 'installed' ? 0.7 : 1
-                  }}
-                >
-                  {status === 'installed' ? <><CheckCircle size={16} /> Yüklü</> : 
-                   status === 'partial' ? <><Download size={16} /> Eksikleri Tamamla</> :
-                   <><Download size={16} /> Paketi Yükle</>}
-                </button>
+                borderRadius: '12px', padding: '1rem', display: 'flex', 
+                alignItems: 'center', transition: 'all 0.15s ease-in-out',
+                position: 'relative', overflow: 'hidden',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = pkg.color; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+              >
+                {/* Accent Line */}
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', background: pkg.color }}></div>
+                
+                <div style={{ 
+                  fontSize: '1.4rem', background: 'var(--bg-color)', 
+                  width: '48px', height: '48px', borderRadius: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginRight: '1rem', border: '1px solid var(--border-color)'
+                }}>
+                   {pkg.emoji}
+                </div>
+                
+                <div style={{ flex: 1 }}>
+                   <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-color)', fontWeight: '700' }}>
+                     {pkg.name}
+                   </h4>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-light)', fontWeight: '500' }}>
+                        {pkg.feeds.length} Kaynak
+                      </span>
+                      <button 
+                         onClick={() => setViewingPackage(pkg)}
+                         style={{ 
+                            background: 'transparent', border: 'none', color: 'var(--text-light)', 
+                            fontSize: '0.75rem', padding: 0, cursor: 'pointer', display: 'flex', 
+                            alignItems: 'center', gap: '4px', opacity: 0.7
+                         }}
+                         onMouseEnter={(e) => e.target.style.opacity = 1}
+                         onMouseLeave={(e) => e.target.style.opacity = 0.7}
+                      >
+                         • İçeriği Gör
+                      </button>
+                   </div>
+                </div>
+
+                <div style={{ paddingLeft: '1rem' }}>
+                  <button
+                    onClick={() => handleInstallPackage(pkg)}
+                    disabled={status === 'installed'}
+                    style={{
+                      padding: '0.6rem 1.2rem', borderRadius: '8px', border: 'none',
+                      cursor: status === 'installed' ? 'default' : 'pointer', fontWeight: '700', fontSize: '0.85rem',
+                      background: status === 'installed' ? 'transparent' : pkg.color,
+                      color: status === 'installed' ? 'var(--success-color)' : '#fff',
+                      transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px'
+                    }}
+                  >
+                    {status === 'installed' ? <CheckCircle size={16} /> : 'Yükle'}
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -481,6 +588,69 @@ export default function Discover() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* PAKET İÇERİĞİ MODALI */}
+      {viewingPackage && (
+        <div 
+          onClick={(e) => { if(e.target === e.currentTarget) setViewingPackage(null) }}
+          style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)',
+            zIndex: 10000, display: 'flex', justifyContent: 'center', alignItems: 'center'
+          }}
+        >
+          <div className="fade-in" style={{
+            background: 'var(--bg-secondary)', width: '450px', maxHeight: '80vh', borderRadius: '16px',
+            padding: '2rem', border: '1px solid var(--border-color)', 
+            boxShadow: '0 20px 60px rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ fontSize: '1.8rem' }}>{viewingPackage.emoji}</div>
+                  <div>
+                     <h3 style={{ margin: 0, color: 'var(--text-color)', fontSize: '1.2rem' }}>{viewingPackage.name}</h3>
+                     <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-light)' }}>Paket İçeriği ({viewingPackage.feeds.length} Kaynak)</p>
+                  </div>
+               </div>
+               <button onClick={() => setViewingPackage(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-light)', cursor: 'pointer' }}>
+                  <X size={24} />
+               </button>
+            </div>
+
+            <div style={{ overflowY: 'auto', paddingRight: '0.5rem', marginBottom: '1.5rem' }}>
+               {viewingPackage.feeds.map((feed, fIdx) => (
+                  <div key={fIdx} style={{ 
+                     padding: '0.8rem', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', 
+                     marginBottom: '0.5rem', border: '1px solid var(--border-color)',
+                     display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                  }}>
+                     <div>
+                        <div style={{ color: 'var(--text-color)', fontSize: '0.9rem', fontWeight: '600' }}>{feed.name}</div>
+                        <div style={{ color: 'var(--text-light)', fontSize: '0.75rem', opacity: 0.7 }}>{new URL(feed.url).hostname}</div>
+                     </div>
+                     {activeLinks.includes(feed.url) && (
+                        <CheckCircle size={16} color="var(--success-color)" title="Zaten Ekli" />
+                     )}
+                  </div>
+               ))}
+            </div>
+
+            <button 
+               onClick={() => { handleInstallPackage(viewingPackage); setViewingPackage(null); }}
+               disabled={getPackageStatus(viewingPackage) === 'installed'}
+               style={{ 
+                  width: '100%', padding: '1rem', borderRadius: '10px', 
+                  background: getPackageStatus(viewingPackage) === 'installed' ? 'var(--bg-color)' : viewingPackage.color,
+                  color: getPackageStatus(viewingPackage) === 'installed' ? 'var(--text-light)' : '#fff', 
+                  border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', 
+                  alignItems: 'center', justifyContent: 'center', gap: '8px'
+               }}
+            >
+               {getPackageStatus(viewingPackage) === 'installed' ? <><CheckCircle size={18} /> Tüm Kaynaklar Yüklü</> : <><Download size={18} /> Paketi Şimdi Yükle</>}
+            </button>
           </div>
         </div>
       )}

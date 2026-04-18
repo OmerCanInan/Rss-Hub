@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import NewsFeed from './pages/NewsFeed';
 import Discover from './pages/Discover';
+import HowToUseDrawer from './components/HowToUseDrawer';
 
 import { useEffect, useState } from 'react';
 import { getAppSettings } from './services/dbService';
@@ -13,6 +14,7 @@ import { AlertTriangle } from 'lucide-react';
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isHowToUseOpen, setIsHowToUseOpen] = useState(false);
   const [pcNotification, setPcNotification] = useState(null);
 
   // PC (Electron) Bildirim Dinleyicisi
@@ -50,7 +52,15 @@ function App() {
     
     applySettings(); // İlk yüklemede çalıştır
     window.addEventListener('rss_settings_updated', applySettings); // İçeriden tetiklendiğinde güncellesin
-    return () => window.removeEventListener('rss_settings_updated', applySettings);
+    
+    // Global Yardım Çekmecesi Dinleyicisi
+    const handleToggleHowToUse = () => setIsHowToUseOpen(prev => !prev);
+    window.addEventListener('toggle_how_to_use', handleToggleHowToUse);
+
+    return () => {
+      window.removeEventListener('rss_settings_updated', applySettings);
+      window.removeEventListener('toggle_how_to_use', handleToggleHowToUse);
+    };
   }, []);
 
   return (
@@ -94,6 +104,7 @@ function App() {
                 </Routes>
               </main>
             </div>
+            <HowToUseDrawer isOpen={isHowToUseOpen} onClose={() => setIsHowToUseOpen(false)} />
           </div>
         </Router>
       </RadioProvider>

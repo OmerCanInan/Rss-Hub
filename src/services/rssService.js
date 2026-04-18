@@ -320,34 +320,35 @@ export const generateTags = (title = '', description = '', sourceName = '') => {
 };
 
 
-export const fetchRssFeed = async (url) => {
+export const fetchRssFeed = async (url, signal = null, timeoutMs = 8000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    // Electron.js'te (veya webSecurity kapalıyken) doğrudan erişimi deneriz.
-    // Eğer Tass gibi siteler bazı proxyleri engelliyorsa, direkt asıl URL'ye istek atmak %100 çalışır.
     let xmlText = '';
-    
-    // Haberi her seferinde CANLI çekmek için tarayıcı önbelleğini (cache) tamamen devre dışı bırakıyoruz.
-    // Proxy'i tamamen kaldırdık çünkü proxy eski verileri önbelleğinde tutuyor!
     let cleanUrl = url.trim();
-    // Cache busting için URL'i bozmak bazı sunucularda WAF bloklarına yol açar (Örn: AA).
-    // Ancak TASS sunucularında hatalı önbelleği aşmak için zorunludur. Tass'a özel bypass:
+
     if (cleanUrl.includes('tass.com')) {
       cleanUrl += (cleanUrl.includes('?') ? '&' : '?') + 'bypass=' + new Date().getTime();
     }
 
-    // Euronews gibi sitelerde '?format=itunes' gibi karmaşık eklentiler sonsuz döngüye girip "414 URI Too Long" hatası atabiliyor. 
-    // Linkin sonundaki çöpü tırpanlayıp, doğrudan ana listeyi çekiyoruz.
     if (cleanUrl.includes('euronews.com')) {
       cleanUrl = cleanUrl.split('?')[0]; 
     }
 
+    // Hem dışarıdan gelen signal hem de iç timeout signal'ini birleştir (AbortSignal.any modern tarayıcılar içindir)
+    // Fallback olarak sadece kendi timeout controller'ımızı kullanıyoruz (veya signal varsa onu dinliyoruz)
+    const activeSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
+
     const response = await fetch(cleanUrl, { 
+      signal: activeSignal,
       cache: 'default',
       headers: {
         'Accept': 'application/rss+xml, application/xml, text/xml, */*',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
+    clearTimeout(id);
 
     if (!response.ok) {
         let errorMsg = `Sunucu Hatası (${response.status})`;

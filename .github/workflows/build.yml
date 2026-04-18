@@ -81,13 +81,13 @@ jobs:
         run: ./gradlew assembleDebug
         
       - name: Rename APK
-        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/Gundemim.apk
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/Gundemim-v0.1.0-B${{ github.run_number }}.apk
         
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-assets
-          path: android/app/build/outputs/apk/debug/Gundemim.apk
+          path: android/app/build/outputs/apk/debug/*.apk
 
   # ==========================================
   # iOS BUILD (Preparation & Build Check)

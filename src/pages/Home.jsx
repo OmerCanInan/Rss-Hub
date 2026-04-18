@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { getRssLinks, addRssLink, deleteRssLink, getGroqApiKey, saveGroqApiKey, getAppSettings, saveAppSettings } from '../services/dbService';
 import { importOPML, exportOPML } from '../services/opmlService';
-import { Search, Globe, Trash2, PlusCircle, Folder, Download, Upload, Compass, Rss, ShieldAlert, Target, Sparkles, Key, ExternalLink, Settings, Type, LayoutGrid, LayoutList, Sun, Moon, CheckCircle, AlertCircle, Volume2, Play } from 'lucide-react';
+import { Search, Globe, Trash2, PlusCircle, Folder, Download, Upload, Compass, Rss, ShieldAlert, Target, Sparkles, Key, ExternalLink, Settings, Type, LayoutGrid, LayoutList, Sun, Moon, CheckCircle, AlertCircle, Volume2, Play, HelpCircle } from 'lucide-react';
 
 // Önerilen kaynaklar listesi ayrı bir "Discover" (Keşfet) sayfasına taşındı.
 
@@ -430,24 +430,35 @@ export default function Home() {
           </div>
         </div>
 
-        <a 
-          href="https://console.groq.com/keys" 
-          target="_blank" 
-          rel="noreferrer" 
-          style={{ 
-            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-            color: 'var(--primary-color)', textDecoration: 'none', fontWeight: '600', fontSize: '0.95rem',
-            marginBottom: '1.5rem'
-          }}
-        >
-          <ExternalLink size={16} /> Groq Console'dan Ücretsiz Key Al →
-        </a>
-
-        <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-light)', lineHeight: '1.6' }}>
+        <div style={{ padding: '1.2rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid var(--border-color)', marginTop: '2rem' }}>
+          <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: 'var(--text-light)', lineHeight: '1.6' }}>
             🔒 Anahtarınız yalnızca <strong>bu cihazda</strong> saklanır. Sunucuya aktarılmaz.
             Uygulama sadece haber özetlerini işler, harici veri toplamaz.
           </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', flexWrap: 'wrap' }}>
+            <a 
+              href="https://console.groq.com/keys" 
+              target="_blank" 
+              rel="noreferrer" 
+              style={{ 
+                color: 'var(--primary-color)', textDecoration: 'none', fontWeight: '700', fontSize: '0.9rem',
+                display: 'inline-flex', alignItems: 'center', gap: '6px'
+              }}
+            >
+              <ExternalLink size={16} /> Groq Console'a Git &rarr;
+            </a>
+            <div style={{ width: '1px', height: '14px', background: 'var(--border-color)' }}></div>
+            <button 
+              onClick={() => window.dispatchEvent(new CustomEvent('toggle_how_to_use'))}
+              style={{ 
+                background: 'transparent', border: 'none', color: 'var(--text-light)', 
+                cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', padding: 0,
+                textDecoration: 'underline', textUnderlineOffset: '3px'
+              }}
+            >
+              Nasıl Alınır? Rehberi Aç
+            </button>
+          </div>
         </div>
       </section>
       )}

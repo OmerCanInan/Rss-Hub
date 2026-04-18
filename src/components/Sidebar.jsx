@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Folder, Compass, Settings, Headphones, X, Send, Globe, Key, Square, Volume2 } from 'lucide-react';
+import { Search, Folder, Compass, Settings, Headphones, X, Send, Globe, Key, Square, Volume2, HelpCircle } from 'lucide-react';
 import { getRssLinks } from '../services/dbService';
 import { useRadio } from '../context/RadioContext';
 import { useState, useEffect } from 'react';
@@ -133,6 +133,9 @@ export default function Sidebar({ isOpen, closeSidebar }) {
           </button>
           <button className="sidebar-link" onClick={() => handleNav('/', '?tab=apikey')}>
             <Key size={18} /> AI Anahtarı
+          </button>
+          <button className="sidebar-link" onClick={() => { window.dispatchEvent(new CustomEvent('toggle_how_to_use')); if(window.innerWidth <= 768) closeSidebar(); }}>
+            <HelpCircle size={18} /> Nasıl Kullanılır?
           </button>
           <button className="sidebar-link" onClick={() => { setIsSupportOpen(true); if(window.innerWidth <= 768) closeSidebar(); }}>
             <Headphones size={18} /> Müşteri Hizmetleri

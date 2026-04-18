@@ -1,21 +1,16 @@
 // src/pages/NewsFeed.jsx
 // RSS Haberlerinin (Sonuçların) listelendiği Ana Ekran.
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { fetchRssFeed, generateTags } from '../services/rssService';
 import { getRssLinks, getNewsCache, saveNewsItems, getFilters, saveFilters, getAppSettings } from '../services/dbService';
 import { useRadio } from '../context/RadioContext';
 import { summarizeNewsWithGemini } from '../services/aiService';
 import NewsCard from '../components/NewsCard';
-import { ArrowLeft, Loader2, RefreshCw, ShieldAlert, Target, Sparkles, Bot, Headphones, Square, Tag } from 'lucide-react';
+import { ArrowLeft, Loader2, RefreshCw, ShieldAlert, Target, Sparkles, Bot, Headphones, Square, Tag, Key, HelpCircle } from 'lucide-react';
 
-// Cache'den gelen haberlere her zaman güncel tag kurallarını uygula
-// (TAG_RULES değiştiğinde eski cache'deki yanlış tag'lar düzeltilir)
-const applyTagsToItems = (items) =>
-  items.map(item => ({
-    ...item,
-    tags: generateTags(item.title || '', item.description || '', item.sourceName || '')
-  }));
+// Haberler çekilirken zaten rssService içinde generateTags ile etiketleniyor.
+// Bu yüzden cache'den okurken tekrar hesaplama yapmak CPU'yu yoruyordu, kaldırıldı.
 
 // Tarih sıralama (Yardımcı fonksiyon)
 const sortNews = (feedData) => {
@@ -40,6 +35,7 @@ export default function NewsFeed() {
   const [error, setError] = useState(null);
   const [visibleCount, setVisibleCount] = useState(50); // İlk yüklemede performans için 50'ye düşürüldü
   const [filterForm, setFilterForm] = useState(() => getFilters());
+  const [debouncedFilterForm, setDebouncedFilterForm] = useState(filterForm);
   const [tagSearch, setTagSearch] = useState(''); // Yazarak etiket araması
   const [selectedTag, setSelectedTag] = useState('');  // Karta tıklayarak seçilen etiket
   const [showTagDropdown, setShowTagDropdown] = useState(false); // Dropdown aç/kapat
@@ -75,6 +71,18 @@ export default function NewsFeed() {
   
   // AI Modal Menü State
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  
+  // V5: İlerleme ve Hız Yönetimi
+  const [refreshStat, setRefreshStat] = useState({ done: 0, total: 0 });
+  const latestRequestIdRef = useRef(0);
+
+  // Filtreler için Debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilterForm(filterForm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [filterForm]);
 
   // Dropdown dışına tıklanınca kapat
   useEffect(() => {
@@ -121,124 +129,171 @@ export default function NewsFeed() {
 
 
   useEffect(() => {
+    const controller = new AbortController();
+    let isCancelled = false;
+    const requestId = ++latestRequestIdRef.current;
+
     const loadNews = async () => {
-      // 1. ANINDA YÜKLEME (Instant Load from Cache)
-      let cachedData = getNewsCache();
+      // 1. ANINDA YÜKLEME (Cache) 
+      const initialData = getNewsCache();
+      const currentLinks = getRssLinks();
       
-      // Hangi kategoriye bakıyoruz? Veriyi filtrele:
-      const links = getRssLinks();
+      const filterByContext = (data) => {
+        let result = data;
+        const currentLinksMap = getRssLinks(); // Her zaman güncel linkleri referans al
+        if (targetFolder) {
+          const allowedUrls = currentLinksMap.filter(l => l.folder === targetFolder).map(l => l.url);
+          result = result.filter(item => allowedUrls.includes(item.sourceUrl));
+        } else if (queryUrl) {
+          result = result.filter(item => item.sourceUrl === queryUrl);
+        } else {
+          const allowedUrls = currentLinksMap.map(l => l.url);
+          result = result.filter(item => allowedUrls.includes(item.sourceUrl));
+          if (filterYesterday && !searchAll) {
+             const now = new Date();
+             const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
+             const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - 1;
+             result = result.filter(item => {
+                const time = item.date.getTime();
+                return time >= startOfYesterday && time <= endOfYesterday;
+             });
+          }
+        }
+        return result;
+      };
+
+      const initialDisplay = filterByContext(initialData);
       
-      if (targetFolder) {
-         const allowedUrls = links.filter(l => l.folder === targetFolder).map(l => l.url);
-         cachedData = cachedData.filter(item => allowedUrls.includes(item.sourceUrl));
-      } else if (queryUrl) {
-         cachedData = cachedData.filter(item => item.sourceUrl === queryUrl);
-      } else {
-         // Tüm Haberler veya Dünün Özeti: Yalnızca şuan kayıtlı kaynaklara ait haberleri göster.
-         const allowedUrls = links.map(l => l.url);
-         cachedData = cachedData.filter(item => allowedUrls.includes(item.sourceUrl));
-         
-         // Dünün Özeti filtresi aktifse, sadece "Dün"e ait olanları ayıkla
-         if (filterYesterday) {
-            const now = new Date();
-            const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
-            const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - 1;
-            cachedData = cachedData.filter(item => {
-               const time = item.date.getTime();
-               return time >= startOfYesterday && time <= endOfYesterday;
-            });
-         }
+      if (!isCancelled && requestId === latestRequestIdRef.current) {
+        setNews(sortNews(initialDisplay));
+        setLoading(initialDisplay.length === 0);
+        setIsRefreshing(true);
+        setError(null);
       }
 
-      // Ekrana hemen geçmiş/çevrimdışı veriyi bas — retroaktif tag uygula
-      if (cachedData.length > 0) {
-        setNews(sortNews(applyTagsToItems(cachedData)));
-        setLoading(false); // Cache doluyken ana yükleme ekranını kapat
-      } else {
-        setLoading(true); // Cache boşsa ana yükleme dönsün
-      }
-      
-      setIsRefreshing(true); // Arka plan çekimi başladı
-      setError(null);
-
-      // 2. ARKA PLANDA CANLI GÜNCELLEME (Background Live Fetch)
-      let liveData = [];
+      // 2. TURBO GÜNCELLEME (V5 Final: Two-Pass Architecture)
       try {
         let linksToFetch = [];
-        
         if (searchAll || filterYesterday || targetFolder) {
           linksToFetch = getRssLinks();
           if (targetFolder) {
             linksToFetch = linksToFetch.filter(l => l.folder === targetFolder);
           }
-          
-          if (linksToFetch.length === 0 && cachedData.length === 0) {
-            setError("Bu kategoride kayıtlı RSS linki bulunamadı.");
-            setIsRefreshing(false);
-            setLoading(false);
-            return;
-          }
-
-          // Çoklu API İstekleri
-          const promises = linksToFetch.map(linkObj => fetchRssFeed(linkObj.url));
-          const results = await Promise.allSettled(promises);
-          
-          results.forEach(res => {
-            if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-              liveData = [...liveData, ...res.value];
-            }
-          });
         } else if (queryUrl) {
-          liveData = await fetchRssFeed(queryUrl);
-          if (liveData.length === 0 && cachedData.length === 0) {
-             setError("Haber çekilemedi veya veriler hatalı.");
-          }
+          linksToFetch = [{ url: queryUrl }];
         }
 
-        // 3. YENİ BİLGİLERİ VERİTABANINA KAYDET VE ÇEK
-        if (liveData.length > 0) {
-           const finalCache = saveNewsItems(liveData); // Otomatik Temizlik ve Tekilleştirme çalışır
-           
-           // Listeyi tekrar bulunduğumuz sayfaya göre filtreleyip göster
-           let finalDisplay = finalCache;
-           const currentLinks = getRssLinks(); // Her zaman güncel linkleri referans al
-           
-           if (targetFolder) {
-             const allowedUrls = currentLinks.filter(l => l.folder === targetFolder).map(l => l.url);
-             finalDisplay = finalDisplay.filter(item => allowedUrls.includes(item.sourceUrl));
-           } else if (queryUrl) {
-             finalDisplay = finalDisplay.filter(item => item.sourceUrl === queryUrl);
-           } else {
-             // searchAll veya yesterday durumu için sadece geçerli linklerin haberlerini geçir
-             const allowedUrls = currentLinks.map(l => l.url);
-             finalDisplay = finalDisplay.filter(item => allowedUrls.includes(item.sourceUrl));
-             
-             if (filterYesterday) {
-                const now = new Date();
-                const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
-                const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - 1;
-                finalDisplay = finalDisplay.filter(item => {
-                   const time = item.date.getTime();
-                   return time >= startOfYesterday && time <= endOfYesterday;
-                });
-             }
-           }
-           
-           setNews(sortNews(applyTagsToItems([...finalDisplay])));
+        // --- AKILLI ÖNCELİKLENDİRME (V5.1) ---
+        // Cache'de son 1 saatte haberi olan kaynakları bul ve en başa al
+        if (linksToFetch.length > 1 && initialData.length > 0) {
+          const oneHourAgo = new Date().getTime() - (60 * 60 * 1000);
+          const activeSourceUrls = new Set();
+          
+          initialData.forEach(item => {
+            if (item.date && item.date.getTime() > oneHourAgo) {
+              activeSourceUrls.add(item.sourceUrl);
+            }
+          });
+
+          // Öncelikli olanları başa al
+          linksToFetch.sort((a, b) => {
+            const aActive = activeSourceUrls.has(a.url) ? 1 : 0;
+            const bActive = activeSourceUrls.has(b.url) ? 1 : 0;
+            return bActive - aActive; 
+          });
+        }
+
+        if (linksToFetch.length === 0) {
+          if (!isCancelled) {
+             setIsRefreshing(false);
+             setLoading(false);
+          }
+          return;
+        }
+
+        if (!isCancelled && requestId === latestRequestIdRef.current) {
+          setRefreshStat({ done: 0, total: linksToFetch.length });
+        }
+
+        // --- CONCURRENCY POOL RUNNER ---
+        const runTasks = async (tasks, concurrency, timeout) => {
+          const pool = new Set();
+          const results = [];
+          const failed = [];
+
+          for (const linkObj of tasks) {
+            if (isCancelled || requestId !== latestRequestIdRef.current) break;
+            
+            const promise = fetchRssFeed(linkObj.url, controller.signal, timeout)
+              .then(items => {
+                if (!isCancelled && requestId === latestRequestIdRef.current) {
+                   setRefreshStat(prev => ({ ...prev, done: prev.done + 1 }));
+                   if (items && items.length > 0) {
+                     saveNewsItems(items);
+                     setNews(prevNews => {
+                        const combined = [...prevNews];
+                        const existingKeys = new Set(combined.map(n => n.title + n.link));
+                        items.forEach(it => {
+                           if (!existingKeys.has(it.title + it.link)) combined.push(it);
+                        });
+                        return sortNews(filterByContext(combined));
+                     });
+                     setLoading(false);
+                   }
+                }
+                return { status: 'fulfilled', url: linkObj.url };
+              })
+              .catch(err => {
+                if (!isCancelled && requestId === latestRequestIdRef.current) {
+                   setRefreshStat(prev => ({ ...prev, done: prev.done + 1 }));
+                }
+                failed.push(linkObj);
+                return { status: 'rejected', url: linkObj.url };
+              })
+              .finally(() => pool.delete(promise));
+
+            pool.add(promise);
+            if (pool.size >= concurrency) {
+              await Promise.race(pool);
+            }
+          }
+          await Promise.all(pool);
+          return failed;
+        };
+
+        // PASS 1: Hızlı Şerit (5 saniye limit)
+        const failedInPass1 = await runTasks(linksToFetch, 20, 5000);
+
+        // Birinci aşama bitti, spinner'ı kapatıp "Hızlı Entegrasyon"u kutlayalım
+        if (!isCancelled && requestId === latestRequestIdRef.current) {
+          setIsRefreshing(false);
+          setLoading(false);
+        }
+
+        // PASS 2: Güvenli Şerit (Arka Plan - 15 saniye limit)
+        if (failedInPass1.length > 0 && !isCancelled && requestId === latestRequestIdRef.current) {
+           // Kalanları daha uzun süreyle sessizce dene
+           await runTasks(failedInPass1, 5, 15000);
         }
 
       } catch (err) {
-        console.error("Canlı güncellenemedi, offline gösteriliyor", err);
-        if (cachedData.length === 0) {
-          setError("Bağlantı hatası. Çevrimdışı sürümde de haber bulunamadı.");
+        if (!isCancelled && err.name !== 'AbortError') {
+          console.error("V5 Update Error:", err);
         }
       } finally {
-        setIsRefreshing(false);
-        setLoading(false);
+        if (!isCancelled && requestId === latestRequestIdRef.current) {
+          setIsRefreshing(false);
+          setLoading(false);
+          setRefreshStat({ done: 0, total: 0 }); // Sayacı temizle
+        }
       }
     };
 
     loadNews();
+    return () => {
+      isCancelled = true;
+      controller.abort();
+    };
   }, [queryUrl, searchAll, filterYesterday, targetFolder]);
 
   // Klasör / Kategori değiştiğinde AI özetini sıfırla (Eski özetin kalmaması için)
@@ -270,35 +325,41 @@ export default function NewsFeed() {
     if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const getFilteredNews = () => {
-    let result = news;
-    const bList = filterForm.blacklist.split(',').map(w => w.trim().toLowerCase()).filter(w => w);
-    const wList = filterForm.whitelist.split(',').map(w => w.trim().toLowerCase()).filter(w => w);
+  // --- HABERLERİ FİLTRELEME (useMemo ile Optimizasyon) ---
+  const displayedNews = useMemo(() => {
+    let result = [...news];
 
-    if (bList.length > 0) {
+    // Klasör Filtresi (Eğer URL'den geliyorsa)
+    if (targetFolder) {
+      const links = getRssLinks();
+      const allowedUrls = links.filter(l => l.folder === targetFolder).map(l => l.url);
+      result = result.filter(item => allowedUrls.includes(item.sourceUrl));
+    }
+
+    // Kelime Filtreleri (Debounced)
+    const bl = debouncedFilterForm.blacklist ? debouncedFilterForm.blacklist.split(',').map(s => s.trim().toLowerCase()).filter(s => s) : [];
+    const wl = debouncedFilterForm.whitelist ? debouncedFilterForm.whitelist.split(',').map(s => s.trim().toLowerCase()).filter(s => s) : [];
+
+    if (bl.length > 0) {
       result = result.filter(item => {
-        const title = (item.title || '').toLowerCase();
-        const desc = (item.description || '').toLowerCase();
-        return !bList.some(bw => title.includes(bw) || desc.includes(bw));
+        const text = (item.title + " " + (item.description || "")).toLowerCase();
+        return !bl.some(word => text.includes(word));
       });
     }
 
-    if (wList.length > 0) {
+    if (wl.length > 0) {
       result = result.filter(item => {
-        const title = (item.title || '').toLowerCase();
-        const desc = (item.description || '').toLowerCase();
-        return wList.some(ww => title.includes(ww) || desc.includes(ww));
+        const text = (item.title + " " + (item.description || "")).toLowerCase();
+        return wl.some(word => text.includes(word));
       });
     }
 
-    // Karta tıklayarak seçilen tag — case-insensitive tam eşleşme
+    // Etiket Filtresi
     if (selectedTag) {
-      const sel = selectedTag.toLowerCase();
       result = result.filter(item =>
-        Array.isArray(item.tags) && item.tags.some(t => t.toLowerCase() === sel)
+        Array.isArray(item.tags) && item.tags.some(t => t.toLowerCase() === selectedTag.toLowerCase())
       );
     } else if (tagSearch.trim()) {
-      // Yazarak arama (kısmi eşleşme)
       const ts = tagSearch.trim().toLowerCase();
       result = result.filter(item =>
         Array.isArray(item.tags) && item.tags.some(t => t.toLowerCase().includes(ts))
@@ -306,9 +367,25 @@ export default function NewsFeed() {
     }
 
     return result;
-  };
+  }, [news, targetFolder, debouncedFilterForm, selectedTag, tagSearch]);
 
-  const displayedNews = getFilteredNews();
+  // --- ETİKET ANALİZİ (useMemo ile Optimizasyon) ---
+  const { tagFreq, allTags } = useMemo(() => {
+    const freq = {};
+    news.forEach(item => {
+      if (Array.isArray(item.tags)) {
+        item.tags.forEach(t => {
+          const normalized = t.toLowerCase();
+          freq[normalized] = (freq[normalized] || 0) + 1;
+        });
+      }
+    });
+    const sortedTags = Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .map(([t]) => t);
+    
+    return { tagFreq: freq, allTags: sortedTags };
+  }, [news]);
 
   const handleGenerateSummary = async () => {
     setIsAiLoading(true);
@@ -616,16 +693,6 @@ export default function NewsFeed() {
 
       {/* ── DROPDOWN PANEL ── — filter alanının altında açılır */}
       {showTagDropdown && news.length > 0 && (() => {
-        const tagFreq = {};
-        news.forEach(item => {
-          if (Array.isArray(item.tags)) {
-            item.tags.forEach(t => {
-              const normalized = t.toLowerCase();
-              tagFreq[normalized] = (tagFreq[normalized] || 0) + 1;
-            });
-          }
-        });
-        const allTags = Object.entries(tagFreq).sort((a,b) => b[1]-a[1]).map(([t]) => t);
         const TAG_COLORS = [
           { bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.5)', text: '#a5b4fc' },
           { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.4)', text: '#6ee7b7' },
@@ -767,12 +834,83 @@ export default function NewsFeed() {
                {isAiLoading ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 0', color: 'var(--text-light)' }}>
                      <Loader2 size={40} className="spinner" style={{ marginBottom: '1rem', color: '#10b981' }} />
-                     <p>Yapay Zeka (Groq) haberleri analiz ediyor...</p>
+                     <p>
+                       Yapay Zeka (Groq) haberleri analiz ediyor...
+                       {refreshStat.total > 0 && (
+                         <span style={{ marginLeft: '8px', opacity: 0.7 }}>
+                           ({refreshStat.done}/{refreshStat.total})
+                         </span>
+                       )}
+                     </p>
                   </div>
-               ) : aiError ? (
-                  <div style={{ color: 'var(--danger-color)', display: 'flex', gap: '0.8rem', alignItems: 'flex-start', fontSize: '1rem', background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-                    <ShieldAlert size={24} style={{ flexShrink: 0 }} />
-                    <p style={{ margin: 0, lineHeight: '1.5' }}>{aiError}</p>
+                ) : aiError ? (
+                  <div className="glass-error-panel" style={{ 
+                    position: 'relative',
+                    padding: '2.5rem',
+                    borderRadius: '20px',
+                    background: 'rgba(239, 68, 68, 0.03)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(239, 68, 68, 0.15)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '1.5rem',
+                    overflow: 'hidden'
+                  }}>
+                    {/* Background decoration */}
+                    <div style={{ position: 'absolute', top: '-10%', right: '-5%', width: '150px', height: '150px', background: 'rgba(239, 68, 68, 0.05)', filter: 'blur(50px)', borderRadius: '50%', zIndex: 0 }}></div>
+                    
+                    <div style={{ 
+                      width: '60px', height: '60px', borderRadius: '50%', 
+                      background: 'rgba(239, 68, 68, 0.1)', display: 'flex', 
+                      alignItems: 'center', justifyContent: 'center', color: '#ff8a8a',
+                      marginBottom: '0.5rem', zIndex: 1
+                    }}>
+                      <ShieldAlert size={32} />
+                    </div>
+
+                    <div style={{ zIndex: 1 }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-color)', fontSize: '1.1rem', fontWeight: '800' }}>Bir Yapılandırma Eksikliği Var</h4>
+                      <p style={{ margin: 0, color: 'var(--text-light)', lineHeight: '1.6', fontSize: '0.95rem', maxWidth: '400px' }}>
+                        {aiError.includes('Groq API anahtarınızı girin') 
+                          ? 'Yapay zeka analizini başlatabilmek için Groq API anahtarınızı tanımlamanız gerekiyor.' 
+                          : aiError}
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '1rem', zIndex: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <Link 
+                        to="/?tab=apikey" 
+                        style={{ 
+                          display: 'flex', alignItems: 'center', gap: '8px', padding: '0.8rem 1.5rem', 
+                          borderRadius: '10px', background: 'var(--text-color)', color: 'var(--bg-color)', 
+                          textDecoration: 'none', fontWeight: '700', fontSize: '0.9rem', transition: 'transform 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                      >
+                        <Key size={18} /> Anahtar Girişi Yap
+                      </Link>
+                      
+                      <button 
+                         onClick={() => window.dispatchEvent(new CustomEvent('toggle_how_to_use'))}
+                         style={{ 
+                            display: 'flex', alignItems: 'center', gap: '8px', padding: '0.8rem 1.5rem', 
+                            borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-color)', 
+                            border: '1px solid var(--border-color)', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem',
+                            transition: 'all 0.2s'
+                         }}
+                         onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'var(--text-light)'; }}
+                         onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                      >
+                         <HelpCircle size={18} /> Nasıl Alınır? Rehberi Gör
+                      </button>
+                    </div>
+                    
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', opacity: 0.5, zIndex: 1 }}>
+                        * Groq API ücretsizdir ve kredi kartı gerektirmez.
+                    </div>
                   </div>
                ) : aiSummary ? (
                   <div style={{ color: 'var(--text-color)', lineHeight: '1.8', fontSize: '1.05rem' }}>
