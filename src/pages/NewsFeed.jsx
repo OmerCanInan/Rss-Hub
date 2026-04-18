@@ -545,12 +545,6 @@ export default function NewsFeed() {
         </div>
         
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {isRefreshing && (
-            <div style={{ color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-              <RefreshCw size={16} className="spinner" /> Güncelleniyor
-            </div>
-          )}
-          
           <button 
             onClick={handleOpenAiModal}
             title="Haberlerin yapay zeka özetini okuyun"

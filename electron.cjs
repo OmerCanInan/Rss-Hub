@@ -77,16 +77,29 @@ function createWindow() {
 
 // IPC: RSS Fetching (Audit: Move RSS fetching to Main)
 ipcMain.handle('fetch-rss', async (event, url) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 saniye sert limit
+
   try {
     const response = await net.fetch(url, {
+      signal: controller.signal,
       headers: {
-        'User-Agent': app.userAgentFallback
+        'User-Agent': app.userAgentFallback,
+        'Cache-Control': 'no-cache'
       }
     });
+    
+    clearTimeout(timeoutId);
+    
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return await response.text();
   } catch (error) {
-    console.error(`RSS Fetch Error (${url}):`, error.message);
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error(`RSS Fetch TIMEOUT (${url}) - 12s sınırı aşıldı.`);
+    } else {
+      console.error(`RSS Fetch Error (${url}):`, error.message);
+    }
     throw error;
   }
 });
