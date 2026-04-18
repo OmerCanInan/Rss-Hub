@@ -82,7 +82,7 @@ export default function Legal() {
         </section>
 
         <div style={{ marginTop: '3rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-light)' }}>
-          © 2024 Gündemim - Profesyonel Haber Okuma Servisi <br />
+          © 2024 - 2026 Gündemim - Profesyonel Haber Okuma Servisi <br />
           Son Güncelleme: 18 Nisan 2026
         </div>
       </div>
