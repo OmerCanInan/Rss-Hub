@@ -320,7 +320,7 @@ export const generateTags = (title = '', description = '', sourceName = '') => {
 };
 
 
-export const fetchRssFeed = async (url, signal = null, timeoutMs = 8000) => {
+export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
 

@@ -9,7 +9,7 @@ import { getGroqApiKey } from './dbService';
  * ücretsiz ve yayıncı onaylı sunulan "title" ve "description" metinlerini okur.
  */
 export const summarizeNewsWithGemini = async (newsItems, category = 'Genel Haberler') => {
-  const apiKey = getGroqApiKey();
+  const apiKey = await getGroqApiKey();
   if (!apiKey) {
     throw new Error('Lütfen Gündem (Ayarlar) sekmesinden Groq API anahtarınızı girin.');
   }

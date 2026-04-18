@@ -21,24 +21,15 @@ function App() {
   // PC (Electron) Bildirim Dinleyicisi
   useEffect(() => {
     // Sadece Electron ortamındaysak çalıştır
-    const isElectron = window.navigator.userAgent.toLowerCase().includes('electron');
-    if (!isElectron) return;
-
-    try {
-      // Electron'un ipcRenderer'ına güvenli erişim
-      const electron = window.require('electron');
-      const { ipcRenderer } = electron;
-
-      const handleNotification = (event, data) => {
+    // Sadece Electron ortamındaysak çalıştır
+    if (window.electronAPI && typeof window.electronAPI.onPcNotification === 'function') {
+      const cleanup = window.electronAPI.onPcNotification((data) => {
         setPcNotification(data);
         // 5 saniye sonra otomatik kapat
         setTimeout(() => setPcNotification(null), 5000);
-      };
-
-      ipcRenderer.on('show-pc-notification', handleNotification);
-      return () => ipcRenderer.removeListener('show-pc-notification', handleNotification);
-    } catch (err) {
-      console.warn("Electron IPC bağlatısı kurulamadı (Kritik değil):", err);
+      });
+      
+      return () => cleanup();
     }
   }, []);
 

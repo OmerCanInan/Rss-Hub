@@ -40,6 +40,8 @@ const handleRedirect = (contents, url, title, message) => {
   }
 };
 
+const GLOBAL_TIMEOUT_MS = 10000;
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -49,11 +51,11 @@ function createWindow() {
     title: 'Gündemim',
     autoHideMenuBar: true,
     webPreferences: {
-      nodeIntegration: false,    // Security: Disabled
-      contextIsolation: true,    // Security: Enabled
-      webSecurity: true,         // Security: Enabled (Shield on)
-      sandbox: true,             // Security: Enabled
-      preload: path.join(__dirname, 'src', 'preload.js') // Link the bridge
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: true,
+      sandbox: true,
+      preload: path.join(__dirname, 'preload.js') // Root preload path
     },
   });
 
@@ -75,10 +77,30 @@ function createWindow() {
   }
 }
 
+// Security: API Key Encryption (Audit: safeStorage implementation)
+const { safeStorage } = require('electron');
+const fs = require('fs');
+
+ipcMain.handle('save-api-key', async (event, key) => {
+  if (!safeStorage.isEncryptionAvailable()) throw new Error('Encryption not supported');
+  const encrypted = safeStorage.encryptString(key);
+  const keyPath = path.join(app.getPath('userData'), 'apisecret.bin');
+  fs.writeFileSync(keyPath, encrypted);
+  return true;
+});
+
+ipcMain.handle('get-api-key', async () => {
+  const keyPath = path.join(app.getPath('userData'), 'apisecret.bin');
+  if (!fs.existsSync(keyPath)) return null;
+  if (!safeStorage.isEncryptionAvailable()) throw new Error('Decryption not supported');
+  const buffer = fs.readFileSync(keyPath);
+  return safeStorage.decryptString(buffer);
+});
+
 // IPC: RSS Fetching (Audit: Move RSS fetching to Main)
 ipcMain.handle('fetch-rss', async (event, url) => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 saniye sert limit
+  const timeoutId = setTimeout(() => controller.abort(), GLOBAL_TIMEOUT_MS);
 
   try {
     const response = await net.fetch(url, {
@@ -90,23 +112,17 @@ ipcMain.handle('fetch-rss', async (event, url) => {
     });
     
     clearTimeout(timeoutId);
-    
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return await response.text();
   } catch (error) {
     clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      console.error(`RSS Fetch TIMEOUT (${url}) - 12s sınırı aşıldı.`);
-    } else {
-      console.error(`RSS Fetch Error (${url}):`, error.message);
-    }
     throw error;
   }
 });
 
 app.userAgentFallback = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
-// Audit: Fix duplicate listener accumulation issue by registering early
+// Audit: Centralized session management (Avoid duplicate listeners)
 app.on('web-contents-created', (event, contents) => {
   if (contents.getType() === 'window') {
     contents.spawnTime = Date.now();
@@ -124,22 +140,26 @@ app.on('web-contents-created', (event, contents) => {
         handleRedirect(contents, url, 'Erişim Engellendi', 'Bu site uygulama içinden erişimi reddetti.');
       }
     });
-
-    // Fix: Using a consistent session-level check if needed, but avoiding duplicate accumulation
-    contents.session.webRequest.onCompleted({ urls: ['*://*/*'] }, (details) => {
-      if (
-        details.resourceType === 'mainFrame' && 
-        (details.statusCode === 403 || details.statusCode === 401) &&
-        (Date.now() - contents.spawnTime < LOAD_GRACE_PERIOD_MS) &&
-        details.url === contents.getURL()
-      ) {
-        handleRedirect(contents, details.url, 'Erişim Engellendi', 'Site güvenliği reddetti.');
-      }
-    });
   }
 });
 
 app.whenReady().then(() => {
+  // Global Session Settings: Avoid memory leaks by registering ONCE at app level
+  const { session } = require('electron');
+  session.defaultSession.webRequest.onCompleted({ urls: ['*://*/*'] }, (details) => {
+    const webContents = details.webContents;
+    if (!webContents) return;
+
+    if (
+      details.resourceType === 'mainFrame' && 
+      (details.statusCode === 403 || details.statusCode === 401) &&
+      (Date.now() - (webContents.spawnTime || 0) < LOAD_GRACE_PERIOD_MS) &&
+      details.url === webContents.getURL()
+    ) {
+      handleRedirect(webContents, details.url, 'Erişim Engellendi', 'Site güvenliği reddetti.');
+    }
+  });
+
   createWindow();
 
   app.on('activate', () => {

@@ -154,13 +154,36 @@ export const saveFilters = (filters) => {
 // ==========================================
 // YAPAY ZEKA (AI) AYARLARI (GROQ)
 // ==========================================
-export const getGroqApiKey = () => {
+export const getGroqApiKey = async () => {
+  // Audit: Encryption support for API Keys
+  if (window.electronAPI && typeof window.electronAPI.getApiKey === 'function') {
+    try {
+      const secureKey = await window.electronAPI.getApiKey();
+      if (secureKey) return secureKey;
+    } catch (err) {
+      console.error("Secure key retrieval failed:", err);
+    }
+  }
   return localStorage.getItem('rss_groq_api_key') || '';
 };
 
-export const saveGroqApiKey = (key) => {
-  if (key && key.trim()) {
-    localStorage.setItem('rss_groq_api_key', key.trim());
+export const saveGroqApiKey = async (key) => {
+  const cleanKey = key?.trim() || '';
+  
+  // Audit: Encrypt key in Electron environment
+  if (window.electronAPI && typeof window.electronAPI.saveApiKey === 'function') {
+    try {
+      await window.electronAPI.saveApiKey(cleanKey);
+      // Clean up localStorage if it existed
+      localStorage.removeItem('rss_groq_api_key');
+      return;
+    } catch (err) {
+      console.error("Secure key save failed:", err);
+    }
+  }
+
+  if (cleanKey) {
+    localStorage.setItem('rss_groq_api_key', cleanKey);
   } else {
     localStorage.removeItem('rss_groq_api_key');
   }

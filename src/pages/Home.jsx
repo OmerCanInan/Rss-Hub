@@ -12,7 +12,12 @@ export default function Home() {
   const [folder, setFolder] = useState('');
   const [links, setLinks] = useState(() => getRssLinks());
   const [activeTab, setActiveTab] = useState('add'); // 'add', 'manage', 'settings', 'apikey'
-  const [apiKeyInput, setApiKeyInput] = useState(() => getGroqApiKey());
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  
+  // Şifreli API Anahtarını yükle (V11)
+  useEffect(() => {
+    getGroqApiKey().then(key => setApiKeyInput(key));
+  }, []);
   const [appSettings, setAppSettings] = useState(() => getAppSettings());
   const [searchParams] = useSearchParams();
   
