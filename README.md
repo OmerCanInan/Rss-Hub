@@ -65,7 +65,7 @@ Uygulama; kimlik, konum, rehber veya herhangi bir hassas kişisel veriyi **topla
 Haber özetleme özelliği kullanıldığında, sadece haberin başlık ve spot metni anonim olarak AI servis sağlayıcısına (Groq) iletilir. Bu veriler kişisel bilgilerinizle eşleştirilmez, kalıcı olarak saklanmaz ve model eğitimi amaçlı kullanılmaz.
 
 ### 3. İçerik ve Önbellekleme
-Haber içerikleri, kullanıcı deneyimi ve çevrimdışı erişim için 7 gün boyunca yerel cihazda geçici olarak tutulur. Uygulama, bu içerikleri yeniden dağıtma, satma veya kalıcı olarak arşivleme amacı gütmez. Kullanıcı her zaman orijinal içerik sahibine yönlendirilir.
+Haber içerikleri, yalnızca performans amacıyla sınırlı süreli ve geçici olarak cihaz üzerinde önbelleğe alınabilir. Uygulama, bu içerikleri yeniden dağıtma, satma veya kalıcı olarak arşivleme amacı gütmez. Tüm içerik hakları ilgili yayıncılara aittir ve uygulama yalnızca yönlendirme amacıyla kullanılır.
 
 ### 4. İletişim
 İletişim, veri hakları veya telif bildirimleri ile ilgili talepleriniz için: **omer1243a@gmail.com** (Veri Sorumlusu: Ömer Can İnan)

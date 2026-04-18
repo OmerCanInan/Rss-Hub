@@ -29,7 +29,7 @@ export default function Legal() {
             <Scale size={20} color="var(--primary-color)" /> 1. İçerik Kullanımı ve Telif Hakları
           </h2>
           <div style={{ color: 'var(--text-light)', fontSize: '0.95rem', lineHeight: '1.8' }}>
-            <p>Gündemim bir içerik üreticisi değildir; üçüncü taraf haber kaynaklarına ait içerikler yalnızca kullanıcı deneyimi için 7 gün boyunca yerel cihazda geçici olarak tutulur, üçüncü taraflara iletilmez veya kalıcı olarak arşivlenmez.</p>
+            <p>Gündemim bir içerik üreticisi değildir; üçüncü taraf haber kaynaklarına ait içerikler yalnızca performans amacıyla sınırlı süreli ve geçici olarak cihaz üzerinde önbelleğe alınabilir. Bu veriler otomatik olarak silinir ve kalıcı depolama veya yeniden dağıtım amacı taşımaz.</p>
             <ul>
               <li><strong>Anlık Gösterim:</strong> İçerikler, ilgili kaynağın sağladığı RSS verilerinden anlık olarak alınır ve yalnızca görüntüleme amacıyla sunulur.</li>
               <li><strong>Önbellekleme:</strong> Uygulama, içerikleri yeniden dağıtım amaçlı olarak önbelleğe (cache) almaz veya üçüncü kişilerle kalıcı olarak paylaşmaz.</li>
@@ -49,7 +49,7 @@ export default function Legal() {
             <ul>
               <li><strong>Anonim İletim:</strong> İçerik, yalnızca özetleme amacıyla üçüncü taraf yapay zeka hizmet sağlayıcılarına (ör. Groq API) anonim olarak iletilir.</li>
               <li><strong>Depolama:</strong> Bu veriler servis sağlayıcılar tarafında kalıcı olarak saklanmaz ve eğitim amacıyla kullanılmaz.</li>
-              <li><strong>Hata Payı:</strong> AI çıktıları "olduğu gibi" sunulur; hatalı veya eksik olabilir. Kritik kararlar öncesinde orijinal kaynak kontrol edilmelidir.</li>
+              <li><strong>Hata Payı:</strong> AI çıktıları "olduğu gibi" sunulur; hatalı veya eksik olabilir. AI çıktıları herhangi bir profesyonel tavsiye niteliği taşımaz.</li>
             </ul>
           </div>
         </section>
@@ -77,7 +77,7 @@ export default function Legal() {
             <ShieldAlert size={20} color="#3b82f6" /> 4. Platform ve İçerik Politikası Uyumu
           </h2>
           <div style={{ color: 'var(--text-light)', fontSize: '0.95rem', lineHeight: '1.8' }}>
-            <p>Gündemim, içerikleri otomatik olarak toplar ve <strong>editoryal müdahale yapmaz</strong>. Uygulama, yanıltıcı bilgi üretmeyi amaçlamaz ve kullanıcıyı her zaman orijinal kaynaklara yönlendirmeyi esas alır.</p>
+            <p>Gündemim, içerikleri otomatik olarak toplar ve <strong>editoryal müdahale yapmaz</strong>. Gündemim, haber kaynakları ile resmi bir ortaklık içinde değildir ve uygulama yalnızca yönlendirme amacıyla kullanılır.</p>
           </div>
         </section>
 
