@@ -32,7 +32,7 @@ export default function Legal() {
             <p>Gündemim bir içerik üreticisi değildir; üçüncü taraf haber kaynaklarına ait içerikler yalnızca kullanıcı deneyimi için 7 gün boyunca yerel cihazda geçici olarak tutulur, üçüncü taraflara iletilmez veya kalıcı olarak arşivlenmez.</p>
             <ul>
               <li><strong>Anlık Gösterim:</strong> İçerikler, ilgili kaynağın sağladığı RSS verilerinden anlık olarak alınır ve yalnızca görüntüleme amacıyla sunulur.</li>
-              <li><strong>Önbellekleme:</strong> Uygulama, içerikleri kalıcı veya yeniden dağıtım amaçlı olarak önbelleğe (cache) almaz.</li>
+              <li><strong>Önbellekleme:</strong> Uygulama, içerikleri yeniden dağıtım amaçlı olarak önbelleğe (cache) almaz veya üçüncü kişilerle kalıcı olarak paylaşmaz.</li>
               <li><strong>Yönlendirme:</strong> Kullanıcı, "Devamını Oku" seçeneği ile doğrudan orijinal kaynağa yönlendirilir.</li>
               <li><strong>Sorumluluk:</strong> Uygulama, üçüncü taraf içeriklerin doğruluğu veya hukuka uygunluğu konusunda garanti vermez.</li>
               <li><strong>Kullanıcı Sorumluluğu:</strong> Kullanıcı, uygulamaya eklediği içerik kaynaklarının kullanım haklarına uygunluğundan bizzat sorumludur.</li>

@@ -17,7 +17,7 @@
     "ios-sync": "cap sync ios"
   },
   "build": {
-    "appId": "com.gundemim.app",
+    "appId": "com.omer.reader",
     "productName": "Gundemim",
     "directories": {
       "output": "pack"
@@ -28,7 +28,8 @@
     },
     "files": [
       "dist/**/*",
-      "electron.cjs"
+      "electron.cjs",
+      "preload.js"
     ]
   },
   "dependencies": {
