@@ -166,24 +166,41 @@ export const RadioProvider = ({ children }) => {
           'https://translate.terraprint.co/translate'
         ];
         
-        const body = JSON.stringify({
-          q: finalTitle,
-          source: 'auto',
-          target: 'tr',
-          format: 'text'
-        });
-
         let translated = null;
         for (const ep of endpoints) {
+          // 1. Yol: JSON
           try {
-            const res = await fetch(ep, {
+            const resJSON = await fetch(ep, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body,
-              signal: AbortSignal.timeout(8000)
+              body: JSON.stringify({ q: finalTitle, source: 'auto', target: 'tr', format: 'text' }),
+              signal: AbortSignal.timeout(6000)
             });
-            if (res.ok) {
-              const data = await res.json();
+            if (resJSON.ok) {
+              const data = await resJSON.json();
+              if (data?.translatedText) {
+                translated = data.translatedText;
+                break;
+              }
+            }
+          } catch (e) { /* JSON Başarısız, Form Data'yı dene */ }
+
+          // 2. Yol: Form Data
+          try {
+            const params = new URLSearchParams();
+            params.append('q', finalTitle);
+            params.append('source', 'auto');
+            params.append('target', 'tr');
+            params.append('format', 'text');
+
+            const resForm = await fetch(ep, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: params,
+              signal: AbortSignal.timeout(6000)
+            });
+            if (resForm.ok) {
+              const data = await resForm.json();
               if (data?.translatedText) {
                 translated = data.translatedText;
                 break;
@@ -191,7 +208,6 @@ export const RadioProvider = ({ children }) => {
             }
           } catch (e) { 
             console.warn(`Radyo çeviri denemesi başarısız (${ep}):`, e);
-            continue; 
           }
         }
         if (translated) finalTitle = translated;

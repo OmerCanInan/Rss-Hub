@@ -30,34 +30,43 @@ export const translateTextToTurkish = async (text) => {
   }
 
   // Mobile / Web: Use LibreTranslate (Play Store Compliant)
-  const body = JSON.stringify({
-    q: text,
-    source: 'auto',
-    target: 'tr',
-    format: 'text',
-    api_key: '', 
-  });
-
+  // Her sunucu için hem JSON hem de Form Data (URLSearchParams) yöntemlerini deniyoruz.
   for (const endpoint of LIBRE_ENDPOINTS) {
+    // 1. Yol: JSON İsteği
     try {
-      const response = await fetch(endpoint, {
+      const resJSON = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: AbortSignal.timeout(8000), 
+        body: JSON.stringify({ q: text, source: 'auto', target: 'tr', format: 'text' }),
+        signal: AbortSignal.timeout(6000), 
       });
-
-      if (!response.ok) continue;
-
-      const data = await response.json();
-      if (data?.translatedText) {
-        return data.translatedText;
+      if (resJSON.ok) {
+        const data = await resJSON.json();
+        if (data?.translatedText) return data.translatedText;
       }
-    } catch {
-      continue;
-    }
+    } catch (e) { /* JSON Başarısız, Form Data'yı dene */ }
+
+    // 2. Yol: Form Data (Bazı sunucular sadece bunu kabul eder)
+    try {
+      const params = new URLSearchParams();
+      params.append('q', text);
+      params.append('source', 'auto');
+      params.append('target', 'tr');
+      params.append('format', 'text');
+
+      const resForm = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params,
+        signal: AbortSignal.timeout(6000), 
+      });
+      if (resForm.ok) {
+        const data = await resForm.json();
+        if (data?.translatedText) return data.translatedText;
+      }
+    } catch (e) { /* Bir sonraki sunucuya geç */ }
   }
 
-  console.warn('Translation: All methods failed, returning original text.');
+  console.warn('Translation: All methods (JSON & Form) failed for all endpoints.');
   return text;
 };
