@@ -10,37 +10,6 @@ const DB_KEY = 'rss_links_db';
 const NEWS_CACHE_KEY = 'rss_news_cache';
 const CACHE_RETENTION_DAYS = 7; // Yasal limit: 7 günden eski haberleri otomatik siler.
 
-// --- SPAM TEMİZLİK MİGRASYONU (V7) ---
-// Önceki yanlış spam algılamalarını temizlemek için bir kez çalışır.
-const runSpamCleanup = async () => {
-  const isCleaned = localStorage.getItem('rss_spam_cleaned_v7');
-  if (isCleaned) return;
-
-  try {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    
-    // getAll + Loop alternatifi (Cursor bazen sorun çıkarabilir)
-    const request = store.getAll();
-    request.onsuccess = () => {
-      const allNews = request.result || [];
-      let updatedCount = 0;
-      for (const item of allNews) {
-        if (item.isSpam) {
-          item.isSpam = false;
-          store.put(item);
-          updatedCount++;
-        }
-      }
-      localStorage.setItem('rss_spam_cleaned_v7', 'true');
-      console.log(`Spam cleanup v7: ${updatedCount} items restored.`);
-    };
-  } catch (err) {
-    console.error('Spam cleanup v7 failed:', err);
-  }
-};
-setTimeout(runSpamCleanup, 1000); // DB init sonrası çalışması için ufak bir gecikme
 
 /**
  * Benzersiz ID üretici (Modern tarayıcı yoksa fallback kullanır)
@@ -300,8 +269,8 @@ export const saveNewsItems = async (newItems) => {
   
   if (freshItems.length === 0) return [];
 
-  // SPAM TESPİTİ: Zaman Bazlı Kayma (Sliding Window) Analizi
-  // Bir kaynağın "spam" sayılması için 20 saniye içinde 10'dan fazla haber yayınlamış olması gerekir.
+  // SPAM TESPİTİ: Aynı Zaman (Timestamp) Analizi
+  // Bir kaynakta tam olarak AYNI SAAT/SANİYE ile 5'ten fazla haber gelmişse bunlar spamdır.
   const itemsBySource = new Map();
   for (const item of freshItems) {
     const src = item.sourceUrl || '';
@@ -311,27 +280,30 @@ export const saveNewsItems = async (newItems) => {
 
   const taggedItems = [];
   for (const [src, sourceItems] of itemsBySource.entries()) {
-    // SPAM KURALI: Aynı saniye (timestamp) içinde 5+ haber gelirse spamdır.
-    // Bu kural tüm siteler için istisnasız geçerlidir.
-    const timeGroups = new Map();
-    for (const item of sourceItems) {
+    // Tüm gelen haberler içinden (newItems içinden) bu kaynak için saatleri kontrol et
+    const fullSourceItems = newItems.filter(i => i.sourceUrl === src);
+    const timeCounts = new Map();
+    
+    for (const item of fullSourceItems) {
       if (!item.date) continue;
-      const ts = Math.floor(item.date.getTime() / 1000); // Saniye bazında grupla
-      timeGroups.set(ts, (timeGroups.get(ts) || 0) + 1);
+      // Milisaniye yerine SANİYE bazında grupla (Precision Fix)
+      const ts = Math.floor(item.date.getTime() / 1000); 
+      timeCounts.set(ts, (timeCounts.get(ts) || 0) + 1);
     }
 
-    let isSpamBurst = false;
-    for (const count of timeGroups.values()) {
-      if (count >= 5) {
-        isSpamBurst = true;
-        break;
+    // Hangi zaman damgaları (saniyeler) spam?
+    const spammySeconds = new Set();
+    for (const [sec, count] of timeCounts.entries()) {
+      if (count > 5) {
+        spammySeconds.add(sec);
       }
     }
 
     for (const item of sourceItems) {
+      const itemSec = item.date ? Math.floor(item.date.getTime() / 1000) : 0;
       taggedItems.push({
         ...item,
-        isSpam: isSpamBurst,
+        isSpam: spammySeconds.has(itemSec)
       });
     }
   }
@@ -445,13 +417,27 @@ export const saveGroqApiKey = async (key) => {
 export const getAppSettings = () => {
   try {
     const data = localStorage.getItem('rss_app_settings');
-    return data ? JSON.parse(data) : { fontTheme: 'mix', layoutStrategy: 'grid', colorTheme: 'dark', playbackRate: 1.0 };
+    return data ? JSON.parse(data) : { fontTheme: 'mix', layoutStrategy: 'grid', colorTheme: 'dark', playbackRate: 1.0, blockSpam: true };
   } catch {
-    return { fontTheme: 'mix', layoutStrategy: 'grid', colorTheme: 'dark', playbackRate: 1.0 };
+    return { fontTheme: 'mix', layoutStrategy: 'grid', colorTheme: 'dark', playbackRate: 1.0, blockSpam: true };
   }
 };
 
 export const saveAppSettings = (settings) => {
   localStorage.setItem('rss_app_settings', JSON.stringify(settings));
+};
+
+// --- GÖRÜNÜM BAZLI AYARLAR (Spam Engelleme vb.) ---
+export const getViewSettings = () => {
+  try {
+    const data = localStorage.getItem('rss_view_settings');
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const saveViewSettings = (settings) => {
+  localStorage.setItem('rss_view_settings', JSON.stringify(settings));
 };
 

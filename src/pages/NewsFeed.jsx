@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, startTransition } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { fetchRssFeed, generateTags } from '../services/rssService';
-import { getRssLinks, getNewsCache, saveNewsItems, getFilters, saveFilters, getAppSettings } from '../services/dbService';
+import { getRssLinks, getNewsCache, saveNewsItems, getFilters, saveFilters, getAppSettings, getViewSettings, saveViewSettings } from '../services/dbService';
 import { useRadio } from '../context/RadioContext';
 import { summarizeNewsWithGemini } from '../services/aiService';
 import NewsCard from '../components/NewsCard';
@@ -85,6 +85,30 @@ export default function NewsFeed() {
   const latestRequestIdRef = useRef(0);
   const pendingNewsUpdate = useRef(false);
 
+  // --- GÖRÜNÜM BAZLI SPAM AYARLARI (V9) ---
+  const [viewSettings, setViewSettings] = useState(() => getViewSettings());
+  
+  // Mevcut görünümün ID'sini belirle
+  const activeViewId = useMemo(() => {
+    if (filterSpam) return 'spam';
+    if (filterToday) return 'today';
+    if (filterYesterday) return 'yesterday';
+    if (targetFolder) return `folder_${targetFolder}`;
+    if (queryUrl) return `source_${queryUrl}`;
+    if (searchAll) return 'all';
+    return 'mixed';
+  }, [filterSpam, filterToday, filterYesterday, targetFolder, queryUrl, searchAll]);
+
+  // Bu görünüme özel spam engelleme durumu
+  const blockSpam = viewSettings[activeViewId] !== false; // Varsayılan: true (spam hariç)
+
+  const handleToggleSpam = () => {
+    if (activeViewId === 'spam') return; // Spam klasöründe kural değiştirilemez
+    const newSettings = { ...viewSettings, [activeViewId]: !blockSpam };
+    setViewSettings(newSettings);
+    saveViewSettings(newSettings);
+  };
+
   // Filtreler için Debounce
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -164,8 +188,10 @@ export default function NewsFeed() {
           return result.filter(item => item.isSpam === true);
         }
 
-        // NORMAL GÖRÜNÜMLER: Spam haberleri her zaman öble
-        result = result.filter(item => !item.isSpam);
+        // NORMAL GÖRÜNÜMLER: Spam haberleri kullanıcı engellemişse gizle
+        if (blockSpam) {
+          result = result.filter(item => !item.isSpam);
+        }
 
         if (targetFolder) {
           const allowedUrls = currentLinksMap
@@ -735,6 +761,44 @@ export default function NewsFeed() {
             {isPlayingRadio ? <Square size={16} fill="currentColor" /> : <Headphones size={18} />}
             {isPlayingRadio ? 'Radyoyu Kapat' : 'Radyo Dinle'}
           </button>
+
+          {/* Spam Engelleme Toggle (V9) */}
+          {activeViewId !== 'spam' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ 
+                display: 'flex', alignItems: 'center', gap: 0,
+                borderRadius: '8px', overflow: 'hidden',
+                border: '1px solid var(--border-color)',
+                width: 'fit-content'
+              }}>
+                <button
+                  onClick={() => !blockSpam && handleToggleSpam()}
+                  style={{
+                    padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700',
+                    background: blockSpam ? 'var(--danger-color)' : 'var(--bg-secondary)',
+                    color: blockSpam ? '#fff' : 'var(--text-light)',
+                    border: 'none', transition: 'all 0.2s'
+                  }}
+                >
+                  Spam'ı Engelle
+                </button>
+                <button
+                  onClick={() => blockSpam && handleToggleSpam()}
+                  style={{
+                    padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700',
+                    background: !blockSpam ? 'var(--success-color)' : 'var(--bg-secondary)',
+                    color: !blockSpam ? '#fff' : 'var(--text-light)',
+                    border: 'none', transition: 'all 0.2s'
+                  }}
+                >
+                  Spam'a İzin Ver
+                </button>
+              </div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-light)', opacity: 0.7, maxWidth: '180px', lineHeight: '1.2' }}>
+                * Spam engellenirse aynı saatte toplu yapan kaynaklar engellenir.
+              </div>
+            </div>
+          )}
 
           {/* Ses Cinsiyet Seçimi */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
