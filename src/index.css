@@ -745,6 +745,11 @@ h4 {
     grid-template-columns: 1fr !important;
     gap: 0.8rem !important;
   }
+
+  /* Mobil Klasör Silme / Düzenleme Butonları (Her zaman görünür) */
+  .sidebar-edit-btn {
+    opacity: 1 !important;
+  }
 }
 
 /* Keşfet Paket Grid (Desktop Varsayılan - 2 Sütun) */

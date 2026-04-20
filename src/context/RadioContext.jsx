@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { getAppSettings } from '../services/dbService';
+import { translateTextToTurkish } from '../services/translationService';
 
 const RadioContext = createContext();
 
@@ -154,16 +155,11 @@ export const RadioProvider = ({ children }) => {
 
     let finalTitle = item.title;
     try {
-      const trUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=tr&dt=t&q=${encodeURIComponent(finalTitle)}`;
-      const trRes = await fetch(trUrl);
-      const trData = await trRes.json();
-      let translatedText = '';
-      if (trData && trData[0]) {
-        trData[0].forEach(t => { if (t[0]) translatedText += t[0]; });
-      }
+      // Use the unified translation service which handles platform branching (Desktop vs Mobile)
+      const translatedText = await translateTextToTurkish(finalTitle);
       if (translatedText) finalTitle = translatedText;
     } catch (err) {
-      console.warn("Çeviri hatası", err);
+      console.warn("Radyo çeviri hatası", err);
     }
 
     if (!isPlayingRef.current) return;

@@ -141,6 +141,27 @@ ipcMain.handle('fetch-rss', async (event, url, timeoutMs = 20000) => {
   }
 });
 
+ipcMain.handle('translate-text', async (event, text, targetLang = 'tr') => {
+  const trUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+  try {
+    const response = await fetch(trUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+    if (!response.ok) throw new Error(`${response.status}`);
+    const data = await response.json();
+    let translatedText = '';
+    if (data && data[0]) {
+      data[0].forEach(t => { if (t[0]) translatedText += t[0]; });
+    }
+    return translatedText;
+  } catch (err) {
+    console.error('[IPC:translate-text] Error:', err);
+    throw err;
+  }
+});
+
 app.userAgentFallback = "Gundemim/1.1 (RSS Reader; +https://github.com/OmerCanInan/Gundemim)";
 
 // Audit: Centralized session management (Avoid duplicate listeners)

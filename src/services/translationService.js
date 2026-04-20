@@ -18,12 +18,24 @@ const LIBRE_ENDPOINTS = [
 export const translateTextToTurkish = async (text) => {
   if (!text || text.trim() === '') return text;
 
+  // --- PLATFORM BRANCHING (V14) ---
+  // Desktop (Electron): Use CORS-safe IPC Bridge
+  if (window.electronAPI && typeof window.electronAPI.translateText === 'function') {
+    try {
+      const translatedData = await window.electronAPI.translateText(text, 'tr');
+      if (translatedData) return translatedData;
+    } catch (err) {
+      console.warn('[DesktopTranslate] IPC Bridge failed, falling back to local fallback if possible:', err);
+    }
+  }
+
+  // Mobile / Web: Use LibreTranslate (Play Store Compliant)
   const body = JSON.stringify({
     q: text,
     source: 'auto',
     target: 'tr',
     format: 'text',
-    api_key: '', // Public instance'larda key gerekmez
+    api_key: '', 
   });
 
   for (const endpoint of LIBRE_ENDPOINTS) {
@@ -32,7 +44,7 @@ export const translateTextToTurkish = async (text) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body,
-        signal: AbortSignal.timeout(8000), // 8 sn timeout
+        signal: AbortSignal.timeout(8000), 
       });
 
       if (!response.ok) continue;
@@ -42,12 +54,10 @@ export const translateTextToTurkish = async (text) => {
         return data.translatedText;
       }
     } catch {
-      // Bu endpoint başarısız; sıradakini dene
       continue;
     }
   }
 
-  // Hiçbir instance yanıt vermediyse orijinal metni döndür
-  console.warn('LibreTranslate: Tüm instance\'lar yanıt vermedi, orijinal metin döndürülüyor.');
+  console.warn('Translation: All methods failed, returning original text.');
   return text;
 };

@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Şifreli Veri Saklama (Audit: Groq API Key Güvenliği için)
   saveApiKey: (key) => ipcRenderer.invoke('save-api-key', key),
   getApiKey: () => ipcRenderer.invoke('get-api-key'),
+  translateText: (text, lang) => ipcRenderer.invoke('translate-text', text, lang),
 
   // PC Bildirimlerini dinlemek için (Listener sızıntısı önlendi)
   onPcNotification: (callback) => {
