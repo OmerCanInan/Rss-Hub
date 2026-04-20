@@ -82,6 +82,7 @@ export default function NewsFeed() {
   // V5: İlerleme ve Hız Yönetimi
   const [refreshStat, setRefreshStat] = useState({ done: 0, total: 0 });
   const latestRequestIdRef = useRef(0);
+  const pendingNewsUpdate = useRef(false);
 
   // Filtreler için Debounce
   useEffect(() => {
@@ -188,6 +189,22 @@ export default function NewsFeed() {
         return result;
       };
 
+      const scheduleNewsUpdate = () => {
+        if (pendingNewsUpdate.current) return;
+        pendingNewsUpdate.current = true;
+        
+        setTimeout(async () => {
+          if (isCancelled || requestId !== latestRequestIdRef.current) return;
+          
+          const allNews = await getNewsCache();
+          startTransition(() => {
+            setNews(sortNews(filterByContext(allNews)));
+            setLoading(false);
+          });
+          pendingNewsUpdate.current = false;
+        }, 3000);
+      };
+
       const initialDisplay = filterByContext(initialData);
       
       if (!isCancelled && requestId === latestRequestIdRef.current) {
@@ -270,11 +287,7 @@ export default function NewsFeed() {
 
                     if (items && items.length > 0) {
                       await saveNewsItems(items);
-                      const allNews = await getNewsCache();
-                      startTransition(() => {
-                        setNews(sortNews(filterByContext(allNews)));
-                        setLoading(false);
-                      });
+                      scheduleNewsUpdate();
                     }
                 }
                 return { status: 'fulfilled', url: linkObj.url };

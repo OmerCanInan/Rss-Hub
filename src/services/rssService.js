@@ -520,8 +520,11 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
       // ETİKETLEME — ortak generateTags fonksiyonu kullanılıyor
       const tags = generateTags(title, plainTextDescription, sourceName);
 
+      const rawLink = link && link !== '#' ? link.split('?')[0] : '';
+      const stableId = (title.trim().toLowerCase() + "||" + rawLink).substring(0, 200);
+
       newsList.push({
-        id: generateUUID(),
+        id: stableId,
         sourceUrl: url,
         sourceName,
         title,

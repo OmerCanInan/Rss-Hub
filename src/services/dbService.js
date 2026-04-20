@@ -2,6 +2,8 @@
 // Uygulamamızda veritabanı olarak şimdilik LocalStorage kullanıyoruz.
 // Clean Architecture prensiplerine uymak için veritabanı işlemlerini bu serviste soyutladık.
 
+let _migrationDone = false;
+
 const DB_KEY = 'rss_links_db';
 const NEWS_CACHE_KEY = 'rss_news_cache';
 const CACHE_RETENTION_DAYS = 7; // Yasal limit: 7 günden eski haberleri otomatik siler.
@@ -165,6 +167,9 @@ const getDB = () => {
 };
 
 export const migrateLocalStorageToIndexedDB = async () => {
+  if (_migrationDone) return;
+  _migrationDone = true;
+
   try {
     const data = localStorage.getItem(NEWS_CACHE_KEY);
     if (!data) return;
@@ -245,70 +250,30 @@ export const getNewsCache = async () => {
 };
 
 /**
- * Yeni çekilen canlı feed'leri alır, eskileri ve tekrarları atarak IndexedDB'ye kaydeder.
- * Bu fonksiyon "Otomatik Temizlik (Garbage Collection)" içerir.
+ * Yeni çekilen canlı feed'leri alır ve filtreleyip IndexedDB'ye bulk olarak kaydeder.
  */
 export const saveNewsItems = async (newItems) => {
-  let cached = await getNewsCache();
+  const cutoffTime = Date.now() - (CACHE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
   
-  // 1. ÇÖP TOPLAYICI (Garbage Collection): 7 Günden eski cache'leri hukuken ve depolama için at.
-  const cutoffTime = new Date().getTime() - (CACHE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-  cached = cached.filter(item => {
-      const itemTime = item.date.getTime();
-      return itemTime > cutoffTime;
+  const freshItems = newItems.filter(item => {
+    const t = item.date?.getTime?.() || Date.now();
+    return t > cutoffTime;
   });
+  
+  if (freshItems.length === 0) return [];
 
-  // 2. Mükemmel Tekilleştirme Cihazı (Hızlı arama için Set/Map kullanımı)
-  const cacheMap = new Map();
-  cached.forEach(i => {
-     const rawLink = i.link && i.link !== '#' ? i.link.split('?')[0] : '';
-     cacheMap.set(i.title.trim().toLowerCase() + "||" + rawLink, true);
-  });
-
-  // 3. Yeni gelenler arasından sadece "daha önce eklenmemiş" olanları filtrele
-  const itemsToAdd = newItems.filter(item => {
-      let time = item.date.getTime();
-      if (isNaN(time)) time = new Date().getTime(); // Bozuk tarih koruması
-      
-      // Çok eski bir haberi hiç veritabanına sokma
-      if (time <= cutoffTime) return false; 
-      
-      const rawLink = item.link && item.link !== '#' ? item.link.split('?')[0] : '';
-      const uniqueKey = item.title.trim().toLowerCase() + "||" + rawLink;
-      
-      if (cacheMap.has(uniqueKey)) return false;
-      
-      cacheMap.set(uniqueKey, true);
-      return true;
-  });
-
-  // 4. Yeni taze haberleri en üste (başa) ekle
-  cached = [...itemsToAdd, ...cached];
-
-  // Opsiyonel Limit
-  if (cached.length > 5000) {
-    cached = cached.slice(0, 5000);
+  const db = await getDB();
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  const store = tx.objectStore(STORE_NAME);
+  
+  for (const item of freshItems) {
+    store.put(item);
   }
-
-  // 5. Kaydet (IndexedDB)
-  try {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    
-    store.clear();
-    for (const item of cached) {
-      store.put(item);
-    }
-
-    return new Promise((resolve) => {
-      tx.oncomplete = () => resolve(cached);
-      tx.onerror = () => resolve(cached);
-    });
-  } catch (e) {
-    console.warn("IndexedDB Kayıt Başarısız", e);
-    return cached;
-  }
+  
+  return new Promise(resolve => {
+    tx.oncomplete = () => resolve(freshItems);
+    tx.onerror = () => resolve([]);
+  });
 };
 
 // ==========================================
