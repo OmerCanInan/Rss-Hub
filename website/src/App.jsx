@@ -19,12 +19,15 @@ function App() {
           kişisel radyo moduna sahip yeni nesil bir haber okuyucudur.
         </p>
         
-        <div className="fade-in" style={{ display: 'flex', gap: '1rem', animationDelay: '0.3s' }}>
+        <div className="fade-in" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', animationDelay: '0.3s' }}>
           <a href={latestReleaseUrl} className="btn btn-primary">
-            <Download size={18} /> Windows İçin İndir
+            <Download size={18} /> Windows (Masaüstü)
+          </a>
+          <a href={latestReleaseUrl} className="btn btn-outline" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+            <Globe size={18} /> Android (APK)
           </a>
           <a href="#ozellikler" className="btn btn-outline">
-            Daha Fazla Bilgi
+            Tüm Özellikler
           </a>
         </div>
 
@@ -36,12 +39,8 @@ function App() {
             <Shield size={14} /> %100 Güvenli
           </div>
           <div className="trust-badge">
-            <Globe size={14} /> Masaüstü & Mobil
+            <Monitor size={14} /> Masaüstü & Mobil
           </div>
-        </div>
-
-        <div className="mockup-container fade-in" style={{ animationDelay: '0.4s' }}>
-          <img src={laptopMockup} alt="Gündemim Desktop Mockup" className="mockup-img" />
         </div>
       </header>
 
@@ -83,24 +82,6 @@ function App() {
             <p style={{ color: 'var(--text-muted)', marginTop: '1rem' }}>
               Kelime bazlı filtreler ile görmek istemediğiniz içerikleri (spam, reklam, istemediğiniz konular) anında engelleyin.
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Mobile Showcase */}
-      <section className="container" style={{ padding: '100px 0', borderTop: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4rem', flexWrap: 'wrap-reverse' }}>
-          <div style={{ flex: '1 1 400px' }}>
-            <img src={radioMockup} alt="Android Radio Mode" style={{ width: '100%', borderRadius: '24px', boxShadow: '0 30px 60px rgba(0,0,0,0.4)' }} />
-          </div>
-          <div style={{ flex: '1 1 400px' }}>
-            <h2 style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>Her Zaman Yanınızda.</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '1.1rem' }}>
-              Gündemim sadece masaüstünde değil, Android cihazlarınızda da yanınızda. Cross-platform desteği ile haberleriniz her zaman senkronize.
-            </p>
-            <a href={latestReleaseUrl} className="btn btn-primary">
-              <Globe size={18} /> APK Olarak İndir
-            </a>
           </div>
         </div>
       </section>
