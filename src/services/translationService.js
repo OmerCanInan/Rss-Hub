@@ -5,10 +5,8 @@
 
 const LIBRE_ENDPOINTS = [
   'https://libretranslate.de/translate',
-  'https://translate.argosopentech.com/translate',
-  'https://translate.terraprint.co/translate',
-  'https://libretranslate.pussthecat.org/translate',
-  'https://translate.fortuna.moe/translate'
+  'https://de.libretranslate.com/translate',
+  'https://translate.terraprint.co/translate'
 ];
 
 /**

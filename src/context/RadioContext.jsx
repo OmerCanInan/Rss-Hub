@@ -162,9 +162,8 @@ export const RadioProvider = ({ children }) => {
         // --- MOBILE / WEB (LibreTranslate - Play Store Safe) ---
         const endpoints = [
           'https://libretranslate.de/translate',
-          'https://translate.argosopentech.com/translate',
-          'https://translate.terraprint.co/translate',
-          'https://libretranslate.pussthecat.org/translate'
+          'https://de.libretranslate.com/translate',
+          'https://translate.terraprint.co/translate'
         ];
         
         const body = JSON.stringify({
@@ -181,7 +180,7 @@ export const RadioProvider = ({ children }) => {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body,
-              signal: AbortSignal.timeout(6000)
+              signal: AbortSignal.timeout(8000)
             });
             if (res.ok) {
               const data = await res.json();
@@ -190,7 +189,10 @@ export const RadioProvider = ({ children }) => {
                 break;
               }
             }
-          } catch (e) { continue; }
+          } catch (e) { 
+            console.warn(`Radyo çeviri denemesi başarısız (${ep}):`, e);
+            continue; 
+          }
         }
         if (translated) finalTitle = translated;
       }
