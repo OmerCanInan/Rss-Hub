@@ -56,6 +56,7 @@ export default function NewsFeed() {
   const searchAll = searchParams.get('all') === 'true';
   const filterToday = searchParams.get('filter') === 'today';
   const filterYesterday = searchParams.get('filter') === 'yesterday';
+  const filterSpam = searchParams.get('filter') === 'spam';
   const targetFolder = searchParams.get('folder'); // Klasör / Etiket desteği
 
   // Radyo Context
@@ -157,6 +158,15 @@ export default function NewsFeed() {
       const filterByContext = (data) => {
         let result = data;
         const currentLinksMap = getRssLinks(); // Her zaman güncel linkleri referans al
+
+        // SPAM GÖRÜNÜMÜ: Sadece spam haberleri göster
+        if (filterSpam) {
+          return result.filter(item => item.isSpam === true);
+        }
+
+        // NORMAL GÖRÜNÜMLER: Spam haberleri her zaman öble
+        result = result.filter(item => !item.isSpam);
+
         if (targetFolder) {
           const allowedUrls = currentLinksMap
             .filter(l => {
@@ -217,7 +227,7 @@ export default function NewsFeed() {
       // 2. TURBO GÜNCELLEME (V5 Final: Two-Pass Architecture)
       try {
         let linksToFetch = [];
-        if (searchAll || filterToday || filterYesterday || targetFolder) {
+        if (searchAll || filterToday || filterYesterday || filterSpam || targetFolder) {
           linksToFetch = getRssLinks();
           if (targetFolder) {
             linksToFetch = linksToFetch.filter(l => {
@@ -374,6 +384,7 @@ export default function NewsFeed() {
   if (filterToday) pageTitle = 'Bugünün Haberleri';
   if (searchAll) pageTitle = 'Tüm Haberler';
   if (filterYesterday) pageTitle = 'Dünün Haberleri';
+  if (filterSpam) pageTitle = 'Spam Mesajlar';
   if (targetFolder) pageTitle = `Klasör: ${targetFolder}`;
 
   const handleFilterChange = (type, value) => {
@@ -633,6 +644,25 @@ export default function NewsFeed() {
 
   return (
     <div className="news-feed-container">
+      {filterSpam && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: '12px',
+          padding: '1rem',
+          marginBottom: '2rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          color: '#fca5a5'
+        }}>
+          <ShieldAlert size={24} />
+          <div>
+            <div style={{ fontWeight: '700', fontSize: '1rem' }}>Spam Filtresi Aktif</div>
+            <div style={{ fontSize: '0.85rem', opacity: 0.8 }}>Bir kaynaktan tek seferde 10'dan fazla haber gelirse buraya taşınır.</div>
+          </div>
+        </div>
+      )}
       <div className="feed-header fade-in" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Link to="/" className="btn-back">

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Folder, Compass, Settings, Headphones, X, Send, Globe, Key, Square, Volume2, HelpCircle, Edit2, Check, Trash2, AlertCircle, Clock } from 'lucide-react';
+import { Search, Folder, Compass, Settings, Headphones, X, Send, Globe, Key, Square, Volume2, HelpCircle, Edit2, Check, Trash2, AlertCircle, Clock, ShieldAlert } from 'lucide-react';
 import { getRssLinks, updateFolderName, deleteFolder } from '../services/dbService';
 import { useRadio } from '../context/RadioContext';
 import { useState, useEffect } from 'react';
@@ -71,6 +71,13 @@ export default function Sidebar({ isOpen, closeSidebar }) {
           </button>
           <button className={`sidebar-link ${isActive('/discover') ? 'active' : ''}`} onClick={() => handleNav('/discover')}>
             <Globe size={18} /> Keşfet
+          </button>
+          <button 
+            className={`sidebar-link ${isActive('/news', '?filter=spam') ? 'active' : ''}`} 
+            onClick={() => handleNav('/news', '?filter=spam')}
+            style={{ color: isActive('/news', '?filter=spam') ? '#f87171' : undefined }}
+          >
+            <ShieldAlert size={18} style={{ color: isActive('/news', '?filter=spam') ? '#f87171' : '#f87171', opacity: 0.8 }} /> Spam
           </button>
         </div>
 

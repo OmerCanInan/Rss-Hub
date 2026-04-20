@@ -253,7 +253,22 @@ export const getNewsCache = async () => {
 
 /**
  * Yeni çekilen canlı feed'leri alır ve filtreleyip IndexedDB'ye bulk olarak kaydeder.
+ * 
+ * SPAM TESPİTİ: Bir RSS kaynağı tek seferde (20 saniyelik bir fetch burst'ünde)
+ * 10'dan fazla haber gönderiyorsa, o kaynaktan gelen TÜM haberler isSpam:true olarak işaretlenir.
+ * Diğer kaynakların haberleri etkilenmez.
  */
+const SPAM_BURST_LIMIT = 25; // 25'ten fazla haber gönderen kaynak (eğer güvenilir değilse) → spam
+
+// Güvenilir kaynaklar: Ne kadar çok haber gönderirlerse göndersinler asla spama düşmezler.
+const WHITELISTED_DOMAINS = [
+  'trthaber.com', 'ntv.com.tr', 'sozcu.com.tr', 'cumhuriyet.com.tr', 'birgun.net',
+  'gazeteduvar.com.tr', 'diken.com.tr', 'haberturk.com', 'hurriyet.com.tr',
+  'milliyet.com.tr', 'aa.com.tr', 'webtekno.com', 'shiftdelete.net', 'donanimhaber.com',
+  'log.com.tr', 'hwp.com.tr', 'bloomberght.com', 'ekonomim.com', 'bigpara.hurriyet.com.tr',
+  'koinbulteni.com', 'coindesk.com', 'cointelegraph.com', 'tr.ign.com', 'technopat.net'
+];
+
 export const saveNewsItems = async (newItems) => {
   const cutoffTime = Date.now() - (CACHE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
   
@@ -264,16 +279,58 @@ export const saveNewsItems = async (newItems) => {
   
   if (freshItems.length === 0) return [];
 
+  // SPAM TESPİTİ: Zaman Bazlı Kayma (Sliding Window) Analizi
+  // Bir kaynağın "spam" sayılması için 20 saniye içinde 10'dan fazla haber yayınlamış olması gerekir.
+  const itemsBySource = new Map();
+  for (const item of freshItems) {
+    const src = item.sourceUrl || '';
+    if (!itemsBySource.has(src)) itemsBySource.set(src, []);
+    itemsBySource.get(src).push(item);
+  }
+
+  const taggedItems = [];
+  for (const [src, sourceItems] of itemsBySource.entries()) {
+    // Whitelist kontrolü
+    let isWhitelisted = false;
+    try {
+      const hostname = new URL(src).hostname.replace('www.', '');
+      isWhitelisted = WHITELISTED_DOMAINS.some(d => hostname.includes(d));
+    } catch (e) {}
+
+    let sourceIsSpamming = false;
+    if (!isWhitelisted && sourceItems.length > 10) {
+      // Haberleri tarihlerine göre diz
+      const sorted = [...sourceItems].sort((a, b) => a.date.getTime() - b.date.getTime());
+      
+      // Herhangi bir 11 haberlik pencere 20 saniyeye sığıyor mu?
+      for (let i = 0; i <= sorted.length - 11; i++) {
+        const windowStart = sorted[i].date.getTime();
+        const windowEnd = sorted[i + 10].date.getTime();
+        if ((windowEnd - windowStart) <= 20000) { // 20 saniye (20000 ms)
+          sourceIsSpamming = true;
+          break;
+        }
+      }
+    }
+
+    for (const item of sourceItems) {
+      taggedItems.push({
+        ...item,
+        isSpam: sourceIsSpamming ? true : (item.isSpam || false),
+      });
+    }
+  }
+
   const db = await getDB();
   const tx = db.transaction(STORE_NAME, 'readwrite');
   const store = tx.objectStore(STORE_NAME);
   
-  for (const item of freshItems) {
+  for (const item of taggedItems) {
     store.put(item);
   }
   
   return new Promise(resolve => {
-    tx.oncomplete = () => resolve(freshItems);
+    tx.oncomplete = () => resolve(taggedItems);
     tx.onerror = () => resolve([]);
   });
 };
