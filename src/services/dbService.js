@@ -10,6 +10,38 @@ const DB_KEY = 'rss_links_db';
 const NEWS_CACHE_KEY = 'rss_news_cache';
 const CACHE_RETENTION_DAYS = 7; // Yasal limit: 7 günden eski haberleri otomatik siler.
 
+// --- SPAM TEMİZLİK MİGRASYONU (V7) ---
+// Önceki yanlış spam algılamalarını temizlemek için bir kez çalışır.
+const runSpamCleanup = async () => {
+  const isCleaned = localStorage.getItem('rss_spam_cleaned_v7');
+  if (isCleaned) return;
+
+  try {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    
+    // getAll + Loop alternatifi (Cursor bazen sorun çıkarabilir)
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const allNews = request.result || [];
+      let updatedCount = 0;
+      for (const item of allNews) {
+        if (item.isSpam) {
+          item.isSpam = false;
+          store.put(item);
+          updatedCount++;
+        }
+      }
+      localStorage.setItem('rss_spam_cleaned_v7', 'true');
+      console.log(`Spam cleanup v7: ${updatedCount} items restored.`);
+    };
+  } catch (err) {
+    console.error('Spam cleanup v7 failed:', err);
+  }
+};
+setTimeout(runSpamCleanup, 1000); // DB init sonrası çalışması için ufak bir gecikme
+
 /**
  * Benzersiz ID üretici (Modern tarayıcı yoksa fallback kullanır)
  */
@@ -258,17 +290,6 @@ export const getNewsCache = async () => {
  * 10'dan fazla haber gönderiyorsa, o kaynaktan gelen TÜM haberler isSpam:true olarak işaretlenir.
  * Diğer kaynakların haberleri etkilenmez.
  */
-const SPAM_BURST_LIMIT = 25; // 25'ten fazla haber gönderen kaynak (eğer güvenilir değilse) → spam
-
-// Güvenilir kaynaklar: Ne kadar çok haber gönderirlerse göndersinler asla spama düşmezler.
-const WHITELISTED_DOMAINS = [
-  'trthaber.com', 'ntv.com.tr', 'sozcu.com.tr', 'cumhuriyet.com.tr', 'birgun.net',
-  'gazeteduvar.com.tr', 'diken.com.tr', 'haberturk.com', 'hurriyet.com.tr',
-  'milliyet.com.tr', 'aa.com.tr', 'webtekno.com', 'shiftdelete.net', 'donanimhaber.com',
-  'log.com.tr', 'hwp.com.tr', 'bloomberght.com', 'ekonomim.com', 'bigpara.hurriyet.com.tr',
-  'koinbulteni.com', 'coindesk.com', 'cointelegraph.com', 'tr.ign.com', 'technopat.net'
-];
-
 export const saveNewsItems = async (newItems) => {
   const cutoffTime = Date.now() - (CACHE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
   
@@ -290,33 +311,27 @@ export const saveNewsItems = async (newItems) => {
 
   const taggedItems = [];
   for (const [src, sourceItems] of itemsBySource.entries()) {
-    // Whitelist kontrolü
-    let isWhitelisted = false;
-    try {
-      const hostname = new URL(src).hostname.replace('www.', '');
-      isWhitelisted = WHITELISTED_DOMAINS.some(d => hostname.includes(d));
-    } catch (e) {}
+    // SPAM KURALI: Aynı saniye (timestamp) içinde 5+ haber gelirse spamdır.
+    // Bu kural tüm siteler için istisnasız geçerlidir.
+    const timeGroups = new Map();
+    for (const item of sourceItems) {
+      if (!item.date) continue;
+      const ts = Math.floor(item.date.getTime() / 1000); // Saniye bazında grupla
+      timeGroups.set(ts, (timeGroups.get(ts) || 0) + 1);
+    }
 
-    let sourceIsSpamming = false;
-    if (!isWhitelisted && sourceItems.length > 10) {
-      // Haberleri tarihlerine göre diz
-      const sorted = [...sourceItems].sort((a, b) => a.date.getTime() - b.date.getTime());
-      
-      // Herhangi bir 11 haberlik pencere 20 saniyeye sığıyor mu?
-      for (let i = 0; i <= sorted.length - 11; i++) {
-        const windowStart = sorted[i].date.getTime();
-        const windowEnd = sorted[i + 10].date.getTime();
-        if ((windowEnd - windowStart) <= 20000) { // 20 saniye (20000 ms)
-          sourceIsSpamming = true;
-          break;
-        }
+    let isSpamBurst = false;
+    for (const count of timeGroups.values()) {
+      if (count >= 5) {
+        isSpamBurst = true;
+        break;
       }
     }
 
     for (const item of sourceItems) {
       taggedItems.push({
         ...item,
-        isSpam: sourceIsSpamming ? true : (item.isSpam || false),
+        isSpam: isSpamBurst,
       });
     }
   }
