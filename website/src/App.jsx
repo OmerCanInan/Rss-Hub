@@ -79,7 +79,7 @@ function App() {
             <div className="feature-icon"><Bot /></div>
             <h3>AI Haber Özetleri</h3>
             <p style={{ color: 'var(--text-muted)', marginTop: '1rem' }}>
-              Saatlerinizi alan haber okuma maratonuna son. Gemini AI ile yüzlerce haberi saniyeler içinde analiz edin ve en önemli noktaları yakalayın.
+              Saatlerinizi alan haber okuma maratonuna son. Groq AI ile yüzlerce haberi saniyeler içinde analiz edin ve en önemli noktaları yakalayın.
             </p>
           </div>
 
