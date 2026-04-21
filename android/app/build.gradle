@@ -7,8 +7,9 @@ android {
         applicationId "com.omer.reader"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // GitHub Actions run_number veya yerel 1 değeri
+        versionCode System.getenv("BUILD_NUMBER")?.toInteger() ?: 1
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,8 +19,13 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            // Kod küçültme ve karartmapping aktif (Güvenlik & Performans)
+            minifyEnabled true
+            shrinkResources true 
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled false
         }
     }
 }

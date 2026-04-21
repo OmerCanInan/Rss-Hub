@@ -10,6 +10,28 @@ const LIBRE_ENDPOINTS = [
 ];
 
 /**
+ * CapacitorHttp Helper: Native katman üzerinden CORS-safe istek atar.
+ */
+const fetchWithCapacitor = async (endpoint, text) => {
+  try {
+    const { CapacitorHttp } = window.Capacitor.Plugins;
+    const response = await CapacitorHttp.post({
+      url: endpoint,
+      headers: { 'Content-Type': 'application/json' },
+      data: { q: text, source: 'auto', target: 'tr', format: 'text' },
+      connectTimeout: 12000,
+      readTimeout: 12000,
+    });
+    if (response.status === 200 && response.data?.translatedText) {
+      return response.data.translatedText;
+    }
+  } catch (err) {
+    console.warn(`[CapacitorHttp] Failed for ${endpoint}:`, err);
+  }
+  return null;
+};
+
+/**
  * Verilen metni LibreTranslate kullanarak Türkçe'ye çevirir.
  * Tüm public instance'lar denenilir, ilk başarılı cevap döner.
  * @param {string} text - Çevrilecek orijinal metin
@@ -29,7 +51,15 @@ export const translateTextToTurkish = async (text) => {
     }
   }
 
-  // Mobile / Web: Use LibreTranslate (Play Store Compliant)
+  // Mobile: Try CapacitorHttp first (Bypasses CORS restrictions)
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+    for (const endpoint of LIBRE_ENDPOINTS) {
+      const result = await fetchWithCapacitor(endpoint, text);
+      if (result) return result;
+    }
+  }
+
+  // Web / PWA Fallback: Use standard fetch()
   for (const endpoint of LIBRE_ENDPOINTS) {
     // 1. Yol: JSON İsteği
     try {
@@ -44,8 +74,14 @@ export const translateTextToTurkish = async (text) => {
       });
       clearTimeout(timeoutId);
       if (resJSON.ok) {
-        const data = await resJSON.json();
-        if (data?.translatedText) return data.translatedText;
+          try {
+            const trResult = await resJSON.json();
+            if (trResult && trResult.translatedText) {
+              return trResult.translatedText;
+            }
+          } catch (e) {
+            // Sessiz geç - bozuk JSON veya HTML yanıtı
+          }
       }
     } catch (e) { /* Fallback'e geç */ }
 
@@ -68,12 +104,15 @@ export const translateTextToTurkish = async (text) => {
       });
       clearTimeout(timeoutId);
       if (resForm.ok) {
-        const data = await resForm.json();
-        if (data?.translatedText) return data.translatedText;
+        try {
+          const data = await resForm.json();
+          if (data?.translatedText) return data.translatedText;
+        } catch (e) {
+          // Sessiz geç
+        }
       }
     } catch (e) { /* Bir sonraki sunucuya geç */ }
   }
 
-  console.warn('Translation: Android compatible attempts failed for all endpoints.');
   return text;
 };

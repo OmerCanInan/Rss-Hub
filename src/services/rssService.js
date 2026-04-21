@@ -333,7 +333,7 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
     }
 
     if (cleanUrl.includes('euronews.com')) {
-      cleanUrl = cleanUrl.split('?')[0]; 
+      cleanUrl = cleanUrl.split('?')[0];
     }
 
     // --- PC (Electron) GÜVENLİ ÇEKİM ---
@@ -392,25 +392,25 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
         console.warn(`Direct fetch failed for ${cleanUrl}, trying CORS proxy...`, err);
         const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
         const proxyResponse = await fetch(proxyUrl, fetchOptions);
-        
+
         if (!proxyResponse.ok) {
           throw new Error(`CORS Proxy Hatası (${proxyResponse.status})`);
         }
         xmlText = await proxyResponse.text();
       }
     }
-    
+
     clearTimeout(id);
-    
+
     // BOŞ VEYA HATALI İÇERİK KONTROLÜ
     if (!xmlText || xmlText.trim().length === 0 || !xmlText.includes('<')) {
-       throw new Error('Geçersiz XML içeriği alındı.');
+      throw new Error('Geçersiz XML içeriği alındı.');
     }
 
     // Gelen XML metnini tarayıcının yerel DOMParser sınıfıyla okuyoruz.
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-    
+
     // Eğer parse sırasında hata olduysa
     const parseError = xmlDoc.querySelector('parsererror');
     if (parseError) {
@@ -431,7 +431,7 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
       // Başlık, açıklama ve linki XML içinden alıyoruz
       const title = item.querySelector('title')?.textContent || 'Başlıksız';
       let description = item.querySelector('description')?.textContent || item.querySelector('summary')?.textContent || '';
-      
+
       // Atom feed'lerde link attr href içindedir
       let link = '#';
       // RSS link tagı
@@ -457,19 +457,26 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
         try {
           const rootUrl = new URL(url);
           link = `${rootUrl.protocol}//${rootUrl.hostname}${link}`;
-        } catch(e) {}
+        } catch (e) { }
       }
-      
+
       // Tarih Parsing (RSS: pubDate, Atom: published/updated)
-      let pubDateStr = item.querySelector('pubDate')?.textContent || item.querySelector('published')?.textContent || item.querySelector('updated')?.textContent || new Date().toISOString();
+      let pubDateStr = item.querySelector('pubDate')?.textContent || item.querySelector('published')?.textContent || item.querySelector('updated')?.textContent;
       
-      let localDate = new Date(pubDateStr); // Otomatik olarak sistem local saatine (Örn: +3) dönüştürülür.
+      let localDate;
+      if (pubDateStr) {
+        localDate = new Date(pubDateStr);
+      } else {
+        // Tarih yoksa: Kullanıcının "aynı tarihte ise spama at" kuralına takılması için hepsine aynı saniyeyi ver
+        localDate = new Date();
+      }
 
       // GELECEK TARİH KORUMASI: Eğer haber gelecekten geliyorsa (timezone hatası vb.), şimdiki zamanı ata.
       const now = new Date();
-      if (localDate > now) {
+      if (localDate > now && !isMissingDate) {
         localDate = now;
       }
+      
 
       // Görsel çekimi (Kapsamlı RSS Image Scraper)
       let imageUrl = null;
@@ -479,29 +486,29 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
       const imageNode = item.querySelector('image');
       const imageNodeUrl = item.querySelector('image > url');
       const contentEncoded = item.getElementsByTagName('content:encoded')[0];
-      
+
       if (mediaContent && mediaContent.getAttribute('url')) {
         imageUrl = mediaContent.getAttribute('url');
       } else if (mediaThumbnail && mediaThumbnail.getAttribute('url')) {
         imageUrl = mediaThumbnail.getAttribute('url');
       } else if (enclosure && enclosure.getAttribute('url')) {
-          // Tip kontrolü yapmadan çekeriz çünkü bazı RSS'ler yanlış tipler dönebiliyor.
+        // Tip kontrolü yapmadan çekeriz çünkü bazı RSS'ler yanlış tipler dönebiliyor.
         imageUrl = enclosure.getAttribute('url');
       } else if (imageNodeUrl && imageNodeUrl.textContent && imageNodeUrl.textContent.match(/https?:\/\//i)) {
         imageUrl = imageNodeUrl.textContent.trim().replace('uploadsContents', 'uploads/Contents');
       } else if (imageNode && imageNode.textContent && imageNode.textContent.match(/https?:\/\//i)) {
         imageUrl = imageNode.textContent.match(/(https?:\/\/[^\s'"><\]]+)/i)[1].replace('uploadsContents', 'uploads/Contents');
-      } 
-      
+      }
+
       // Eğer üstteki DOM metodları CDATA içeriklerini okuyamadıysa raw (saf) HTML/XML içinden zorla bul:
       if (!imageUrl && (item.innerHTML || item.outerHTML)) {
-         const rawHtml = item.innerHTML || item.outerHTML;
-         const rawMatch = rawHtml.match(/<image>.*?<!\[CDATA\[\s*(https?:\/\/[^\s\]]+)\s*\]\]>.*?<\/image>/i) || rawHtml.match(/<image>.*?(https?:\/\/[^\s'"><\]]+).*?<\/image>/i);
-         if (rawMatch && rawMatch[1]) {
-            imageUrl = rawMatch[1].replace('uploadsContents', 'uploads/Contents');
-         }
+        const rawHtml = item.innerHTML || item.outerHTML;
+        const rawMatch = rawHtml.match(/<image>.*?<!\[CDATA\[\s*(https?:\/\/[^\s\]]+)\s*\]\]>.*?<\/image>/i) || rawHtml.match(/<image>.*?(https?:\/\/[^\s'"><\]]+).*?<\/image>/i);
+        if (rawMatch && rawMatch[1]) {
+          imageUrl = rawMatch[1].replace('uploadsContents', 'uploads/Contents');
+        }
       }
-      
+
       if (!imageUrl) {
         // Description veya content:encoded bölümünde HTML olarak gömülü <img src="..." /> etiketi varsa çek.
         let combinedText = description + (contentEncoded ? contentEncoded.textContent : '');
@@ -532,11 +539,23 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
         link,
         imageUrl,
         date: localDate,
-        tags,
+        tags
       });
     });
 
-    return newsList;
+    // --- AKILLI SPAM FİLTRESİ (V11) ---
+    const timeCount = {};
+    newsList.forEach(item => {
+      const ts = Math.floor(item.date.getTime() / 1000);
+      timeCount[ts] = (timeCount[ts] || 0) + 1;
+    });
+
+    return newsList.map(item => {
+      const ts = Math.floor(item.date.getTime() / 1000);
+      // KESİN KURAL: Aynı saniyede, aynı kaynaktan 5+ haber gelirse içeriğe bakmadan SPAM say.
+      item.isSpam = timeCount[ts] >= 5;
+      return item;
+    });
 
   } catch (error) {
     console.error(`RSS çekilirken hata: ${url}`, error);

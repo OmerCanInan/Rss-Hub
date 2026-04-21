@@ -1,18 +1,20 @@
 const { app, BrowserWindow, shell, ipcMain, net } = require('electron');
+let autoUpdater;
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+} catch (e) {
+  // Module not found, silent fallback
+}
 const path = require('path');
 
-// --- CONSTANTS (Audit: Replace magic numbers) ---
+// --- CONSTANTS ---
 const LOAD_GRACE_PERIOD_MS = 3000;
-const HTTP_ERROR_CHECK_PERIOD_MS = 3500;
 const REDIRECT_DELAY_MS = 100;
-
-// Security: No longer disabling web-security globally.
-// We will fetch RSS in the Main process which is not bound by CORS.
 
 const isDev = !app.isPackaged;
 
 /**
- * Common redirect handler (Audit: Extracted to named function)
+ * Common redirect handler
  */
 const handleRedirect = (contents, url, title, message) => {
   const ignoredDomains = [
@@ -23,9 +25,6 @@ const handleRedirect = (contents, url, title, message) => {
   
   if (ignoredDomains.some(domain => url.includes(domain))) return;
 
-  console.warn(`${title}: ${url}`);
-  
-  // Notify Renderer
   contents.send('show-pc-notification', {
     title: title,
     message: 'Güvenliğiniz için bu haber varsayılan tarayıcıda açılıyor.',
@@ -40,8 +39,6 @@ const handleRedirect = (contents, url, title, message) => {
   }
 };
 
-const GLOBAL_TIMEOUT_MS = 10000;
-
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -55,7 +52,7 @@ function createWindow() {
       contextIsolation: true,
       webSecurity: true,
       sandbox: true,
-      preload: path.join(__dirname, 'preload.js') // Root preload path
+      preload: path.join(__dirname, 'preload.js')
     },
   });
 
@@ -77,7 +74,7 @@ function createWindow() {
   }
 }
 
-// Security: API Key Encryption (Audit: safeStorage implementation)
+// Security: API Key Encryption
 const { safeStorage } = require('electron');
 const fs = require('fs');
 
@@ -97,26 +94,16 @@ ipcMain.handle('get-api-key', async () => {
   return safeStorage.decryptString(buffer);
 });
 
-// IPC: RSS Fetching (Audit: Move RSS fetching to Main)
+// IPC: RSS Fetching
 ipcMain.handle('fetch-rss', async (event, url, timeoutMs = 20000) => {
   const cleanUrl = url.trim();
-  
-  const headers = {
-    'Sec-Fetch-Site': 'cross-site',
-    'Upgrade-Insecure-Requests': '1'
-  };
-
   const attemptFetch = async (targetUrl) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      console.log(`[IPC:fetch-rss] Requesting: ${targetUrl}`);
-      const response = await fetch(targetUrl, {
-        signal: controller.signal,
-        headers: headers
-      });
+      const response = await fetch(targetUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
-      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      if (!response.ok) throw new Error(`${response.status}`);
       return await response.text();
     } catch (err) {
       clearTimeout(timeoutId);
@@ -127,82 +114,86 @@ ipcMain.handle('fetch-rss', async (event, url, timeoutMs = 20000) => {
   try {
     return await attemptFetch(cleanUrl);
   } catch (error) {
-    // Retry Strategy (V6): HTTP -> HTTPS Fallback
     if (cleanUrl.startsWith('http://')) {
       const httpsUrl = cleanUrl.replace('http://', 'https://');
-      console.log(`[IPC:fetch-rss] Retrying with HTTPS: ${httpsUrl}`);
       try {
         return await attemptFetch(httpsUrl);
       } catch (retryError) {
-        throw new Error(`HTTP & HTTPS failed: ${retryError.message}`);
+        throw new Error(`Failed: ${retryError.message}`);
       }
     }
     throw error;
   }
 });
 
+// IPC: Translation with multiple fallbacks and silent error handling
 ipcMain.handle('translate-text', async (event, text, targetLang = 'tr') => {
-  const trUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+  // Option 1: Google Translate (Informal API)
   try {
-    const response = await fetch(trUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0'
+    const trUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+    const response = await fetch(trUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && Array.isArray(data[0])) {
+        let translatedText = '';
+        data[0].forEach(t => { if (t[0]) translatedText += t[0]; });
+        if (translatedText) return translatedText;
       }
-    });
-    if (!response.ok) throw new Error(`${response.status}`);
-    const data = await response.json();
-    let translatedText = '';
-    if (data && data[0]) {
-      data[0].forEach(t => { if (t[0]) translatedText += t[0]; });
     }
-    return translatedText;
-  } catch (err) {
-    console.error('[IPC:translate-text] Error:', err);
-    throw err;
+  } catch (err) { /* Silent fallback */ }
+
+  // Option 2: LibreTranslate Cluster
+  const LIBRE_ENDPOINTS = [
+    'https://libretranslate.de/translate',
+    'https://de.libretranslate.com/translate',
+    'https://translate.terraprint.co/translate'
+  ];
+
+  for (const endpoint of LIBRE_ENDPOINTS) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: text, source: 'auto', target: 'tr', format: 'text' })
+      });
+      
+      if (response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          if (data?.translatedText) return data.translatedText;
+        }
+      }
+    } catch (err) { /* Silent skip next */ }
   }
+  
+  return text;
 });
 
 app.userAgentFallback = "Gundemim/1.1 (RSS Reader; +https://github.com/OmerCanInan/Gundemim)";
 
-// Audit: Centralized session management (Avoid duplicate listeners)
 app.on('web-contents-created', (event, contents) => {
   if (contents.getType() === 'window') {
     contents.spawnTime = Date.now();
     
     contents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      // Only redirect if it fails immediately during load
       if (Date.now() - contents.spawnTime > LOAD_GRACE_PERIOD_MS) return;
       if (validatedURL && validatedURL.startsWith('http')) {
-        handleRedirect(contents, validatedURL, 'Bağlantı Sorunu', 'Bu site şu an uygulama içinde açılamıyor.');
+        handleRedirect(contents, validatedURL, 'Bağlantı Sorunu', 'Sayfa uygulama dışına yönlendirildi.');
       }
     });
 
-    contents.on('did-navigate', (event, url, httpResponseCode) => {
-      if (Date.now() - contents.spawnTime > HTTP_ERROR_CHECK_PERIOD_MS) return;
-      if (httpResponseCode === 403 || httpResponseCode === 401) {
-        handleRedirect(contents, url, 'Erişim Engellendi', 'Bu site uygulama içinden erişimi reddetti.');
-      }
-    });
+    // SPAM PREVENTION: Disabled the 403/401 automatic redirect to avoid constant popups
   }
 });
 
 app.whenReady().then(() => {
-  // Global Session Settings: Avoid memory leaks by registering ONCE at app level
-  const { session } = require('electron');
-  session.defaultSession.webRequest.onCompleted({ urls: ['*://*/*'] }, (details) => {
-    const webContents = details.webContents;
-    if (!webContents) return;
-
-    if (
-      details.resourceType === 'mainFrame' && 
-      (details.statusCode === 403 || details.statusCode === 401) &&
-      (Date.now() - (webContents.spawnTime || 0) < LOAD_GRACE_PERIOD_MS) &&
-      details.url === webContents.getURL()
-    ) {
-      handleRedirect(webContents, details.url, 'Erişim Engellendi', 'Site güvenliği reddetti.');
-    }
-  });
-
   createWindow();
+
+  if (autoUpdater) {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

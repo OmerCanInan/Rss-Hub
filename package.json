@@ -13,6 +13,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "pack-win": "npm run build && cross-env ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder --win",
+    "pack-mac": "npm run build && electron-builder --mac",
+    "pack-linux": "npm run build && electron-builder --linux",
     "android-sync": "cap sync android",
     "ios-sync": "cap sync ios"
   },
@@ -40,6 +42,7 @@
     "@capacitor/core": "^8.3.0",
     "@capacitor/ios": "^8.3.0",
     "@capacitor/preferences": "^8.0.1",
+    "electron-updater": "^6.8.3",
     "lucide-react": "^1.8.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

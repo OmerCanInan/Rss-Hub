@@ -213,6 +213,10 @@ export const saveNewsItems = (newItems) => {
   return cached; // Tekrar UI'a güncel (veya budanmış) halini ver
 };
 
+export const clearNewsCache = () => {
+  localStorage.removeItem(NEWS_CACHE_KEY);
+};
+
 // ==========================================
 // KELİME FİLTRELERİ (Kara Liste & Altın Kelime)
 // ==========================================

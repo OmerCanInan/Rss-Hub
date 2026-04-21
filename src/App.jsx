@@ -10,7 +10,7 @@ import HowToUseDrawer from './components/HowToUseDrawer';
 import Legal from './pages/Legal';
 
 import { useEffect, useState } from 'react';
-import { getAppSettings } from './services/dbService';
+import { getAppSettings, clearNewsCache } from './services/dbService';
 import { AlertTriangle } from 'lucide-react';
 
 function App() {
@@ -20,7 +20,6 @@ function App() {
 
   // PC (Electron) Bildirim Dinleyicisi
   useEffect(() => {
-    // Sadece Electron ortamındaysak çalıştır
     // Sadece Electron ortamındaysak çalıştır
     if (window.electronAPI && typeof window.electronAPI.onPcNotification === 'function') {
       const cleanup = window.electronAPI.onPcNotification((data) => {
@@ -42,6 +41,14 @@ function App() {
       document.documentElement.setAttribute('data-theme', settings.colorTheme || 'dark');
     };
     
+    // --- TEK SEFERLİK CACHE TEMİZLİĞİ (Kullanıcı İsteği) ---
+    const hasWiped = sessionStorage.getItem('gundemim_cache_wiped');
+    if (!hasWiped) {
+      clearNewsCache();
+      sessionStorage.setItem('gundemim_cache_wiped', 'true');
+      console.warn("Önbellek (Cache) temizlendi - Yeni kurallarla başlanıyor.");
+    }
+
     applySettings(); // İlk yüklemede çalıştır
     window.addEventListener('rss_settings_updated', applySettings); // İçeriden tetiklendiğinde güncellesin
     

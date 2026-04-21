@@ -1,24 +1,48 @@
-// src/context/TranslationContext.jsx
-// Uygulama çapında "Otomatik Türkçe'ye Çevir" durumunu yöneten Context.
 import { createContext, useState, useContext, useEffect } from 'react';
+import { Preferences } from '@capacitor/preferences';
 
 const TranslationContext = createContext();
 
 export const TranslationProvider = ({ children }) => {
-  // Varsayılan olarak kapalı başlasın, ancak kullanıcı daha önce açtıysa Local Storage'dan geri yüklesin.
-  const [isTranslationEnabled, setIsTranslationEnabled] = useState(() => {
-    return localStorage.getItem('autoTranslate') === 'true';
-  });
+  const [isTranslationEnabled, setIsTranslationEnabled] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Durum değiştiğinde Local Storage'a yaz.
+  // Yükleme: Preferences'tan ayarı çek
   useEffect(() => {
-    localStorage.setItem('autoTranslate', isTranslationEnabled);
-  }, [isTranslationEnabled]);
+    const loadPreference = async () => {
+      try {
+        const { value } = await Preferences.get({ key: 'autoTranslate' });
+        // Sadece 'true' ise açık kabul et
+        setIsTranslationEnabled(value === 'true');
+      } catch (err) {
+        console.error('[Preferences] Load failed:', err);
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+    loadPreference();
+  }, []);
+
+  // Kaydetme: Durum değiştiğinde Preferences'a yaz
+  useEffect(() => {
+    if (!isInitialized) return;
+    const savePreference = async () => {
+      try {
+        await Preferences.set({
+          key: 'autoTranslate',
+          value: isTranslationEnabled.toString()
+        });
+      } catch (err) {
+        console.error('[Preferences] Save failed:', err);
+      }
+    };
+    savePreference();
+  }, [isTranslationEnabled, isInitialized]);
 
   const toggleTranslation = () => setIsTranslationEnabled(prev => !prev);
 
   return (
-    <TranslationContext.Provider value={{ isTranslationEnabled, toggleTranslation }}>
+    <TranslationContext.Provider value={{ isTranslationEnabled, toggleTranslation, isInitialized }}>
       {children}
     </TranslationContext.Provider>
   );

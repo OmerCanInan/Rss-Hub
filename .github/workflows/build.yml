@@ -80,9 +80,11 @@ jobs:
       - name: Build Android APK
         working-directory: android
         run: ./gradlew assembleDebug
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
         
       - name: Rename APK
-        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/Gundemim-v1.0.1-B${{ github.run_number }}.apk
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/Gundemim-v1.0.2-B${{ github.run_number }}.apk
         
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
@@ -160,11 +162,10 @@ jobs:
             Bu sürüm, uygulamanın market (Play Store/Windows) yayınına hazır, güvenlik ve hukuk sertifikalı master versiyonudur.
             
             **Önemli Güncellemeler:**
-            - 🛡️ **Hukuki Zırh:** Play Store standartlarında "Kurşun Geçirmez" legal metinler ve gizlilik politikası.
-            - 🔐 **Siber Güvenlik:** `safeStorage` ile şifreli API anahtarları, `contextIsolation` ve tam izolasyonlu preload bridge.
-            - 🚀 **Turbo Performans:** V12 ağ optimizasyonu ve `CapacitorHttp` ile mobil CORS bypass desteği.
-            - 📦 **Hafıza Yönetimi:** LocalStorage dolmasına karşı "Akıllı Budama" (Quota Protection) teknolojisi.
-            - 💎 **Marka Kimliği:** Tüm platformlarda "Gündemim" logosu ve profesyonel paket adı (`com.omer.reader`).
+            - 🛡️ **Hukuki & Güvenlik:** `minifyEnabled` ile kod optimizasyonu ve `safeStorage` güvenliği.
+            - 🚀 **CORS Bypass:** `CapacitorHttp` entegrasyonu ile çeviri servisleri mobil uyumlu hale getirildi.
+            - 📦 **Modern Depolama:** `localStorage` yerine `@capacitor/preferences` ile daha kararlı veri yönetimi.
+            - 🔄 **Auto-Build:** Her sürüm için otomatik benzersiz `versionCode` (Build: ${{ github.run_number }}) ataması.
             
             **Kurulum Dosyaları:**
             - **Windows:** `.exe` dosyası (Portable & Setup).
