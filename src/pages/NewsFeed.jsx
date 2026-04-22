@@ -732,42 +732,37 @@ export default function NewsFeed() {
         </div>
         
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* MOBİLDE RADYO VE AI SESLENDİRMEYİ KAPAT (Kullanıcı isteği) */}
-          {!window.Capacitor?.isNativePlatform() && (
-            <>
-              <button 
-                onClick={handleOpenAiModal}
-                title="Haberlerin yapay zeka özetini okuyun"
-                style={{ 
-                  display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px',
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  color: '#10b981', 
-                  border: '1px solid rgba(16, 185, 129, 0.4)', 
-                  cursor: 'pointer', transition: 'all 0.3s ease', fontWeight: '600', fontSize: '0.9rem', zIndex: 5,
-                  height: '42px'
-                }}
-              >
-                <Bot size={18} />
-                AI Özeti 
-              </button>
+          <button 
+            onClick={handleOpenAiModal}
+            title="Haberlerin yapay zeka özetini okuyun"
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              color: '#10b981', 
+              border: '1px solid rgba(16, 185, 129, 0.4)', 
+              cursor: 'pointer', transition: 'all 0.3s ease', fontWeight: '600', fontSize: '0.9rem', zIndex: 5,
+              height: '42px'
+            }}
+          >
+            <Bot size={18} />
+            AI Özeti 
+          </button>
 
-              <button 
-                onClick={handleToggleRadio}
-                style={{ 
-                  display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px',
-                  background: isPlayingRadio ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)',
-                  color: isPlayingRadio ? '#ff8a8a' : 'var(--text-color)', 
-                  border: isPlayingRadio ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-color)', 
-                  boxShadow: isPlayingRadio ? '0 0 12px rgba(239, 68, 68, 0.15)' : 'none',
-                  cursor: 'pointer', transition: 'all 0.3s ease', fontWeight: '600', fontSize: '0.9rem', zIndex: 5,
-                  height: '42px'
-                }}
-              >
-                {isPlayingRadio ? <Square size={16} fill="currentColor" /> : <Headphones size={18} />}
-                {isPlayingRadio ? 'Radyoyu Kapat' : 'Radyo Dinle'}
-              </button>
-            </>
-          )}
+          <button 
+            onClick={handleToggleRadio}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px',
+              background: isPlayingRadio ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)',
+              color: isPlayingRadio ? '#ff8a8a' : 'var(--text-color)', 
+              border: isPlayingRadio ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-color)', 
+              boxShadow: isPlayingRadio ? '0 0 12px rgba(239, 68, 68, 0.15)' : 'none',
+              cursor: 'pointer', transition: 'all 0.3s ease', fontWeight: '600', fontSize: '0.9rem', zIndex: 5,
+              height: '42px'
+            }}
+          >
+            {isPlayingRadio ? <Square size={16} fill="currentColor" /> : <Headphones size={18} />}
+            {isPlayingRadio ? 'Radyoyu Kapat' : 'Radyo Dinle'}
+          </button>
 
           {/* Spam Engelleme Toggle (V9) */}
           {activeViewId !== 'spam' && (
