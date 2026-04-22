@@ -17,7 +17,7 @@
     "pack-linux": "npm run build && electron-builder --linux",
     "android-sync": "vite build && cap sync android",
     "ios-sync": "cap sync ios",
-    "postinstall": "node scripts/fix-gradle.js"
+    "postinstall": "node scripts/fix-gradle.cjs"
   },
   "build": {
     "appId": "com.omer.reader",
