@@ -44,6 +44,13 @@
       "dist/**/*",
       "electron.cjs",
       "preload.js"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "OmerCanInan",
+        "repo": "Gundemim"
+      }
     ]
   },
   "dependencies": {
