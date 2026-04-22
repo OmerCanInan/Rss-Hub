@@ -31,6 +31,14 @@
       ],
       "icon": "resources/icon.png"
     },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Gundemim",
+      "artifactName": "${productName}-Setup.${ext}"
+    },
     "files": [
       "dist/**/*",
       "electron.cjs",
