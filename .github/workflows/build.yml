@@ -74,6 +74,9 @@ jobs:
       - name: Capacitor Sync Android
         run: npm run android-sync
         
+      - name: Verify assets exist
+        run: ls android/app/src/main/assets/public/
+        
       - name: Set Executable Permissions
         run: chmod +x android/gradlew
         

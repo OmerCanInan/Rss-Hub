@@ -9,8 +9,6 @@ const DISCOVER_FEEDS = [
     { name: "TRT Haber", url: "https://www.trthaber.com/sondakika_articles.rss" },
     { name: "NTV Son Dakika", url: "https://www.ntv.com.tr/son-dakika.rss" },
     { name: "Sözcü", url: "https://www.sozcu.com.tr/feeds-rss-category-gundem" },
-    { name: "Cumhuriyet", url: "https://www.cumhuriyet.com.tr/rss" },
-    { name: "BirGün", url: "https://www.birgun.net/xml/rss.xml" },
     { name: "Gazete Duvar", url: "https://www.gazeteduvar.com.tr/rss" },
     { name: "Diken", url: "https://www.diken.com.tr/feed/" },
     { name: "Habertürk", url: "https://www.haberturk.com/rss" },
@@ -94,8 +92,6 @@ const READY_PACKAGES = [
       { name: "TRT Haber", url: "https://www.trthaber.com/sondakika_articles.rss" },
       { name: "NTV Son Dakika", url: "https://www.ntv.com.tr/son-dakika.rss" },
       { name: "Sözcü", url: "https://www.sozcu.com.tr/feeds-rss-category-gundem" },
-      { name: "Cumhuriyet", url: "https://www.cumhuriyet.com.tr/rss" },
-      { name: "BirGün", url: "https://www.birgun.net/xml/rss.xml" },
       { name: "Gazete Duvar", url: "https://www.gazeteduvar.com.tr/rss" },
       { name: "Habertürk", url: "https://www.haberturk.com/rss" }
     ]

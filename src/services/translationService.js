@@ -3,6 +3,8 @@
 // Gayriresmi Google Translate API'sinden (translate.googleapis.com) göç edildi.
 // Hizmet veren public instance'lar: libretranslate.com, translate.argosopentech.com
 
+import { Translation, Language } from '@capacitor-mlkit/translation';
+
 const LIBRE_ENDPOINTS = [
   'https://libretranslate.de/translate',
   'https://de.libretranslate.com/translate',
@@ -32,26 +34,53 @@ const fetchWithCapacitor = async (endpoint, text) => {
 };
 
 /**
- * Verilen metni LibreTranslate kullanarak Türkçe'ye çevirir.
- * Tüm public instance'lar denenilir, ilk başarılı cevap döner.
+ * ML Kit Translation: On-device translation for mobile.
+ * Default: English -> Turkish
+ */
+const translateWithMLKit = async (text) => {
+  try {
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return null;
+
+    // Not: Model indirilmemişse otomatik indirilir (30MB civarı).
+    // Gelecekte Language ID eklenirse sourceLanguage dinamik yapılabilir.
+    const result = await Translation.translate({
+      text,
+      sourceLanguage: Language.English,
+      targetLanguage: Language.Turkish,
+    });
+    return result.text;
+  } catch (err) {
+    console.warn('[MLKit] Translation failed or not available:', err);
+    return null;
+  }
+};
+
+/**
+ * Verilen metni Türkçe'ye çevirir.
+ * Sırasıyla: Desktop IPC -> Mobile ML Kit -> Mobile CapacitorHttp -> Web Fetch
  * @param {string} text - Çevrilecek orijinal metin
  * @returns {Promise<string>} Çevrilmiş metin (hata durumunda orijinal metin)
  */
 export const translateTextToTurkish = async (text) => {
   if (!text || text.trim() === '') return text;
 
-  // --- PLATFORM BRANCHING (V14) ---
-  // Desktop (Electron): Use CORS-safe IPC Bridge
+  // 1. Desktop (Electron): Use CORS-safe IPC Bridge
   if (window.electronAPI && typeof window.electronAPI.translateText === 'function') {
     try {
       const translatedData = await window.electronAPI.translateText(text, 'tr');
       if (translatedData) return translatedData;
     } catch (err) {
-      console.warn('[DesktopTranslate] IPC Bridge failed, falling back to local fallback if possible:', err);
+      console.warn('[DesktopTranslate] IPC Bridge failed:', err);
     }
   }
 
-  // Mobile: Try CapacitorHttp first (Bypasses CORS restrictions)
+  // 2. Mobile Native: ML Kit (Fast, Offline-capable)
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    const mlkitResult = await translateWithMLKit(text);
+    if (mlkitResult) return mlkitResult;
+  }
+
+  // 3. Mobile/Web Fallback: LibreTranslate (via CapacitorHttp or Fetch)
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
     for (const endpoint of LIBRE_ENDPOINTS) {
       const result = await fetchWithCapacitor(endpoint, text);
@@ -59,12 +88,11 @@ export const translateTextToTurkish = async (text) => {
     }
   }
 
-  // Web / PWA Fallback: Use standard fetch()
+  // 4. Web / PWA Fallback: Use standard fetch()
   for (const endpoint of LIBRE_ENDPOINTS) {
-    // 1. Yol: JSON İsteği
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12sn limit
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
 
       const resJSON = await fetch(endpoint, {
         method: 'POST',
@@ -74,45 +102,25 @@ export const translateTextToTurkish = async (text) => {
       });
       clearTimeout(timeoutId);
       if (resJSON.ok) {
-          try {
-            const trResult = await resJSON.json();
-            if (trResult && trResult.translatedText) {
-              return trResult.translatedText;
-            }
-          } catch (e) {
-            // Sessiz geç - bozuk JSON veya HTML yanıtı
-          }
+          const trResult = await resJSON.json();
+          if (trResult?.translatedText) return trResult.translatedText;
       }
-    } catch (e) { /* Fallback'e geç */ }
+    } catch (e) { /* Devam et */ }
 
-    // 2. Yol: Form Data (URLSearchParams.toString() - En uyumlu yöntem)
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-      const params = new URLSearchParams();
-      params.append('q', text);
-      params.append('source', 'auto');
-      params.append('target', 'tr');
-      params.append('format', 'text');
-
+      const params = new URLSearchParams({ q: text, source: 'auto', target: 'tr', format: 'text' });
       const resForm = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString(), // String'e zorla (Eski Android uyumu için)
-        signal: controller.signal, 
+        body: params.toString(),
       });
-      clearTimeout(timeoutId);
       if (resForm.ok) {
-        try {
-          const data = await resForm.json();
-          if (data?.translatedText) return data.translatedText;
-        } catch (e) {
-          // Sessiz geç
-        }
+        const data = await resForm.json();
+        if (data?.translatedText) return data.translatedText;
       }
-    } catch (e) { /* Bir sonraki sunucuya geç */ }
+    } catch (e) { /* Sonraki sunucuya geç */ }
   }
 
   return text;
 };
+

@@ -351,7 +351,7 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
         const capResponse = await CapacitorHttp.get({
           url: cleanUrl,
           headers: {
-            'User-Agent': "Gundemim/1.1 (RSS Reader; +https://github.com/OmerCanInan/Gundemim)",
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36',
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
           },
@@ -376,7 +376,7 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
         cache: 'default',
         headers: {
           'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-          'User-Agent': 'Gundemim/1.1 (RSS Reader; +https://github.com/OmerCanInan/Gundemim)',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
@@ -427,6 +427,10 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
       sourceName = channelTitleNode.textContent.trim();
     }
 
+    if (items.length === 0) {
+      console.warn(`[RSS] Kaynak başarılı ancak haber bulunamadı (Bot engeli olabilir): ${url}`);
+    }
+
     items.forEach((item) => {
       // Başlık, açıklama ve linki XML içinden alıyoruz
       const title = item.querySelector('title')?.textContent || 'Başlıksız';
@@ -473,6 +477,7 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
 
       // GELECEK TARİH KORUMASI: Eğer haber gelecekten geliyorsa (timezone hatası vb.), şimdiki zamanı ata.
       const now = new Date();
+      const isMissingDate = !pubDateStr;
       if (localDate > now && !isMissingDate) {
         localDate = now;
       }
