@@ -37,7 +37,7 @@ export default function Navbar({ toggleSidebar }) {
           </button>
           <Link to="/" className="navbar-logo" style={{ gap: '0.5rem' }}>
             <div className="logo-icon">
-              <img src="/icon.png" alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+              <img src="/icon.png?v=1.0" alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
             </div>
             <h1>Gündemim</h1>
           </Link>
