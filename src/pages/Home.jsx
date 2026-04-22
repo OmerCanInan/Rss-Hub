@@ -1,5 +1,5 @@
 // src/pages/Home.jsx
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { getRssLinks, addRssLink, deleteRssLink, updateFolderName, getGroqApiKey, saveGroqApiKey, getAppSettings, saveAppSettings } from '../services/dbService';
 import { importOPML, exportOPML } from '../services/opmlService';
@@ -73,6 +73,14 @@ export default function Home() {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
+  // Linkleri klasörlere göre grupla (V14 - useMemo eklendi)
+  const groupedLinks = React.useMemo(() => links.reduce((acc, link) => {
+    const f = link.folder || 'Genel';
+    if (!acc[f]) acc[f] = [];
+    acc[f].push(link);
+    return acc;
+  }, {}), [links]);
+
   // Suggestion Filter Logic
   useEffect(() => {
     const existingFolders = Object.keys(groupedLinks).filter(f => f !== 'Genel');
@@ -81,7 +89,7 @@ export default function Home() {
     } else {
       setFilteredFolders(existingFolders.filter(f => f.toLowerCase().includes(folder.toLowerCase())));
     }
-  }, [folder, links]);
+  }, [folder, groupedLinks]);
 
   // Outside click for suggestions
   useEffect(() => {
@@ -93,14 +101,6 @@ export default function Home() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
-
-  // Linkleri klasörlere göre grupla
-  const groupedLinks = links.reduce((acc, link) => {
-    const f = link.folder || 'Genel';
-    if (!acc[f]) acc[f] = [];
-    acc[f].push(link);
-    return acc;
-  }, {});
 
   const handleAddNewLink = (e) => {
     e?.preventDefault();

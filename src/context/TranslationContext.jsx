@@ -1,5 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react';
-import { Preferences } from '@capacitor/preferences';
+// Preferences dinamik olarak yüklenecek
 
 const TranslationContext = createContext();
 
@@ -16,6 +16,7 @@ export const TranslationProvider = ({ children }) => {
         let seenWarning = 'false';
 
         if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+          const { Preferences } = await import('@capacitor/preferences');
           const { value } = await Preferences.get({ key: 'autoTranslate' });
           const { value: sw } = await Preferences.get({ key: 'hasSeenDownloadWarning' });
           autoTranslate = value;
@@ -43,6 +44,7 @@ export const TranslationProvider = ({ children }) => {
     const savePreference = async () => {
       try {
         if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+          const { Preferences } = await import('@capacitor/preferences');
           await Preferences.set({
             key: 'autoTranslate',
             value: isTranslationEnabled.toString()
@@ -62,6 +64,10 @@ export const TranslationProvider = ({ children }) => {
     };
     savePreference();
   }, [isTranslationEnabled, hasSeenDownloadWarning, isInitialized]);
+
+  const toggleTranslation = () => {
+    setIsTranslationEnabled(prev => !prev);
+  };
 
   const markWarningAsSeen = () => setHasSeenDownloadWarning(true);
 

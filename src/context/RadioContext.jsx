@@ -50,7 +50,7 @@ export const RadioProvider = ({ children }) => {
     if (window.speechSynthesis && window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
-    
+
     const timer = setInterval(() => {
       if (availableVoices.length === 0) loadVoices();
     }, 2000);
@@ -245,7 +245,7 @@ export const RadioProvider = ({ children }) => {
 
       const trVoices = availableVoices.filter(v => v.lang.startsWith('tr'));
       let selectedVoice = trVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('tolga')) || trVoices[0];
-      
+
       if (selectedVoice) utterance.voice = selectedVoice;
       utterance.onend = goNext;
       utterance.onerror = goNext;
@@ -259,13 +259,13 @@ export const RadioProvider = ({ children }) => {
       try {
         const { TextToSpeech } = await import('@capacitor-community/text-to-speech');
         await TextToSpeech.stop();
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (typeof Audio !== 'undefined') {
       const unlockAudio = new Audio();
       unlockAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhAAWAAWAnYmF0YQAAAAA=";
-      unlockAudio.play().catch(() => {});
+      unlockAudio.play().catch(() => { });
       googleTtsRef.current = unlockAudio;
     }
 
@@ -273,7 +273,7 @@ export const RadioProvider = ({ children }) => {
       window.speechSynthesis.cancel();
     }
 
-    stopRadio(); 
+    stopRadio();
     setCurrentQueue(list);
     setIsPlaying(true);
     isPlayingRef.current = true;
@@ -284,18 +284,17 @@ export const RadioProvider = ({ children }) => {
     setIsPlaying(false);
     isPlayingRef.current = false;
     setCurrentIndex(-1);
-    
+
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
       try {
-        const { TextToSpeech } = await import('@capacitor-community/text-to-speech');
         await TextToSpeech.stop();
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
-    
+
     if (googleTtsRef.current) {
       googleTtsRef.current.pause();
       googleTtsRef.current.src = "";

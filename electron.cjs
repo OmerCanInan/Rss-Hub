@@ -33,20 +33,31 @@ const handleRedirect = (contents, url, title, message) => {
   });
 
   shell.openExternal(url);
-  const win = BrowserWindow.fromWebContents(contents);
-  if (win) {
-    setTimeout(() => win.close(), REDIRECT_DELAY_MS);
-  }
+  // Ana pencereyi kapatma mantığı hatalıydı (Bug #11), kaldırıldı.
 };
 
+// Hata Yakalayıcı (Terminalde crash detaylarını görmek için)
+process.on('uncaughtException', (error) => {
+  console.error('[Electron Main] Uncaught Exception:', error);
+});
+
 function createWindow() {
-  const win = new BrowserWindow({
+  const isDev = process.env.IS_DEV === 'true' || !app.isPackaged;
+  const iconPath = path.join(__dirname, 'resources', 'icon.png');
+  
+  // İkon dosya kontrolü
+  const fs = require('fs');
+  const finalIcon = fs.existsSync(iconPath) ? iconPath : undefined;
+
+  win = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 600,
     title: 'Gündemim',
+    icon: finalIcon,
     autoHideMenuBar: true,
+    show: false, // Hazır olana kadar gizli tut (Siyah/Beyaz ekranı önler)
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -70,14 +81,21 @@ function createWindow() {
       console.log('[Electron] Retrying loadURL in 1s...');
       setTimeout(() => win.loadURL('http://localhost:5173'), 1000);
     });
-    win.webContents.openDevTools({ mode: 'right' });
-    // Cache temizliğini arka planda yap
+    
+    win.webContents.on('did-finish-load', () => {
+      win.webContents.openDevTools({ mode: 'right' });
+    });
+    
     win.webContents.session.clearCache().catch(() => {});
   } else {
     win.loadFile(path.join(__dirname, 'dist', 'index.html')).catch(err => {
       console.error('[Electron] Failed to load production file:', err);
     });
   }
+
+  win.once('ready-to-show', () => {
+    win.show();
+  });
 }
 
 // Security: API Key Encryption

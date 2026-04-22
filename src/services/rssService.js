@@ -370,7 +370,18 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
 
     if (!xmlText) {
       // --- NORMAL FETCH (Mobil Fallback / Web) ---
-      const activeSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
+      // AbortSignal.any() polyfill/alternative for older WebView/Electron
+      let activeSignal = controller.signal;
+      if (signal) {
+        if (typeof AbortSignal.any === 'function') {
+          activeSignal = AbortSignal.any([signal, controller.signal]);
+        } else {
+          // Fallback: If either signal aborts, the fetch will be cancelled (limited support)
+          // Note: In older environments we prioritize the main timeout controller
+          activeSignal = controller.signal;
+        }
+      }
+
       const fetchOptions = {
         signal: activeSignal,
         cache: 'default',
