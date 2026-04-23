@@ -26,3 +26,8 @@ dist-ssr
 # Electron / App build folders
 dist_app
 pack
+
+# Android / iOS Secrets
+android/key.properties
+*.jks
+

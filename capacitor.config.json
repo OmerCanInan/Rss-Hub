@@ -1,6 +1,6 @@
 {
-  "appId": "com.omer.reader",
-  "appName": "Gundemim",
+  "appId": "com.omercan.gundemim",
+  "appName": "Gündemim",
   "webDir": "dist",
   "plugins": {
     "CapacitorHttp": {

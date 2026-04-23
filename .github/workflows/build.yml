@@ -87,7 +87,9 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
         
       - name: Rename APK
-        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/Gundemim-v1.0.2-B${{ github.run_number }}.apk
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/Gundemim-v${VERSION}-B${{ github.run_number }}.apk
         
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4

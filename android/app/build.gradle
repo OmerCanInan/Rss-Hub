@@ -1,15 +1,21 @@
 apply plugin: 'com.android.application'
 
+def keystorePropertiesFile = rootProject.file('key.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
-    namespace = "com.omer.reader"
+    namespace = "com.omercan.gundemim"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.omer.reader"
+        applicationId "com.omercan.gundemim"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // GitHub Actions run_number veya yerel 1 değeri
-        versionCode System.getenv("BUILD_NUMBER")?.toInteger() ?: 1
-        versionName "1.0.2"
+        // GitHub Actions BUILD_NUMBER veya manuel artırım için varsayılan değer
+        versionCode System.getenv("BUILD_NUMBER")?.toInteger() ?: 103 
+        versionName "1.1.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -17,12 +23,29 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile = file(keystoreProperties['storeFile'])
+                storePassword = keystoreProperties['storePassword']
+                keyAlias = keystoreProperties['keyAlias']
+                keyPassword = keystoreProperties['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             // Kod küçültme ve karartmapping aktif (Güvenlik & Performans)
             minifyEnabled true
             shrinkResources true 
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            // İmzalama yapılandırması
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
         debug {
             minifyEnabled false

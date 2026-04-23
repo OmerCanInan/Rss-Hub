@@ -1,4 +1,4 @@
-package com.omer.reader;
+package com.omercan.gundemim;
 
 import com.getcapacitor.BridgeActivity;
 

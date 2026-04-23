@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Gundemim</string>
-    <string name="title_activity_main">Gundemim</string>
-    <string name="package_name">com.gundemim.app</string>
-    <string name="custom_url_scheme">com.gundemim.app</string>
+    <string name="app_name">Gündemim</string>
+    <string name="title_activity_main">Gündemim</string>
+    <string name="package_name">com.omercan.gundemim</string>
+    <string name="custom_url_scheme">com.omercan.gundemim</string>
 </resources>
