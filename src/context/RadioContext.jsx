@@ -84,6 +84,13 @@ export const RadioProvider = ({ children }) => {
   const sanitizeForAudio = (text) => {
     if (!text) return '';
     return text
+      // AI Özeti Markdown Temizliği
+      .replace(/\[Haber ↗\]\(.*?\)/g, '') // Linkleri kaldır
+      .replace(/\{\{.*?\}\}/g, '')        // {{Kaynak}} etiketlerini kaldır
+      .replace(/\*\*/g, '')               // Kalın yazıları kaldır
+      .replace(/###/g, '')                // Başlık işaretlerini kaldır
+      
+      // Kelime Değişimleri
       .replace(/\bAI\b/g, 'Yapay Zeka')
       .replace(/\bGPT\b/g, 'Ci-pi-ti')
       .replace(/\bPC\b/g, 'Pi-si')
@@ -178,22 +185,9 @@ export const RadioProvider = ({ children }) => {
 
     if (!isPlayingRef.current) return;
 
-    let cleanSource = item.sourceName || '';
-    if (cleanSource) {
-      cleanSource = cleanSource.split('-')[0].split('|')[0].split(':')[0].split('–')[0].trim();
-      if (cleanSource.length > 25) cleanSource = cleanSource.split('.')[0];
-    } else {
-      try {
-        const u = new URL(item.sourceUrl);
-        const parts = u.hostname.replace('www.', '').split('.');
-        cleanSource = parts.length > 1 ? parts[0] : 'Sıradaki haber';
-      } catch {
-        cleanSource = 'Sıradaki haber';
-      }
-    }
+    // Sadece haberi oku, kaynağı okuma (Kullanıcı isteği)
+    const fullSpeechText = sanitizeForAudio(finalTitle + ".");
 
-    const introText = cleanSource ? `${cleanSource} bildiriyor: ` : 'Sıradaki haber: ';
-    const fullSpeechText = sanitizeForAudio(introText + "... " + finalTitle + ".");
 
     const goNext = () => {
       setTimeout(() => {

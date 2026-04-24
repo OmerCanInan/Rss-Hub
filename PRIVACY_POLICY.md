@@ -1,63 +1,28 @@
-# Gündemim — Gizlilik Politikası (Privacy Policy)
+# Privacy Policy for Gündemim
 
-**Son güncelleme / Last updated:** 20 Nisan 2026
+**Last updated: April 24, 2026**
 
----
+Gündemim ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our mobile application "Gündemim".
 
-## Türkçe
+## 1. Information Collection and Use
 
-### Hangi verileri topluyoruz?
+### Personal Data
+Gündemim is designed to work as a local RSS reader. We **do not collect** any personally identifiable information (PII) such as your name, email address, or phone number. All your news sources, categories, and preferences are stored **locally on your device**.
 
-**Gündemim hiçbir kişisel veri toplamaz ve sunucumuza göndermez.**
+### AI Features (Optional)
+If you use the AI Summary feature, the news headlines and descriptions are sent to Groq/Google API for summarization. This data is not linked to your identity.
 
-| Veri Türü | Nerede saklanır | Sunucuya gider mi? |
-|-----------|-----------------|-------------------|
-| RSS kaynakları (URL listesi) | Cihaz (localStorage) | ❌ Hayır |
-| Haber önbelleği | Cihaz (IndexedDB) | ❌ Hayır |
-| Kelime filtreleri ve tercihler | Cihaz (localStorage) | ❌ Hayır |
-| Groq API anahtarı | Android Keystore / iOS Keychain / Electron native store | ❌ Hayır |
+### Translation Features
+If you use the Translation feature, it runs locally on your device using Google ML Kit. No text is sent to our servers for translation.
 
-### Üçüncü Taraf Servisler
+## 2. Storage
+All data, including your RSS feeds and settings, are stored in your device's local storage. If you delete the application, this data will also be deleted.
 
-- **RSS Kaynakları:** Seçtiğiniz haber sitelerinin RSS beslemelerine doğrudan bağlanılır. Bu sitelerin kendi gizlilik politikaları geçerlidir.
-- **Groq API (isteğe bağlı):** Yapay zeka özeti özelliğini kullanırsanız, seçtiğiniz haber başlık ve açıklamaları Groq'un API'sine anonim olarak gönderilir. Kişisel bilgi gönderilmez.
-- **LibreTranslate (isteğe bağlı):** Çeviri özelliğini kullanırsanız, çevirilecek metin açık kaynaklı LibreTranslate sunucularına gönderilir. Kişisel bilgi gönderilmez.
+## 3. Third-Party Services
+Our app displays content from various RSS feeds. We are not responsible for the privacy practices of these third-party news websites. We encourage you to read their privacy policies.
 
-### Veri Güvenliği
+## 4. Changes to This Privacy Policy
+We may update our Privacy Policy from time to time. You are advised to review this page periodically for any changes.
 
-- Uygulama yedekleme (Android Backup) **devre dışı** bırakılmıştır (`allowBackup="false"`).
-- API anahtarları platform güvenli deposunda (Android Keystore / iOS Keychain) saklanır.
-
-### İletişim
-
-Sorularınız için: [GitHub Issues](https://github.com/OmerCanInan/Gundemim/issues)
-
----
-
-## English
-
-### What data do we collect?
-
-**Gündemim collects no personal data and sends nothing to our servers.**
-
-| Data Type | Stored where | Sent to server? |
-|-----------|-------------|-----------------|
-| RSS source URLs | Device (localStorage) | ❌ No |
-| News cache | Device (IndexedDB) | ❌ No |
-| Word filters & preferences | Device (localStorage) | ❌ No |
-| Groq API key | Android Keystore / iOS Keychain / Electron native store | ❌ No |
-
-### Third-Party Services
-
-- **RSS Sources:** The app connects directly to the RSS feeds of news sites you choose. Their own privacy policies apply.
-- **Groq API (optional):** If you use the AI summary feature, selected news titles and descriptions are sent anonymously to Groq's API. No personal information is transmitted.
-- **LibreTranslate (optional):** If you use the translation feature, the text to be translated is sent to open-source LibreTranslate servers. No personal information is transmitted.
-
-### Data Security
-
-- Android Backup is **disabled** (`allowBackup="false"`).
-- API keys are stored in platform secure storage (Android Keystore / iOS Keychain).
-
-### Contact
-
-For questions: [GitHub Issues](https://github.com/OmerCanInan/Gundemim/issues)
+## 5. Contact Us
+If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us at: [Your Contact Email]
