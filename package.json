@@ -1,7 +1,7 @@
 {
   "name": "gundemim",
   "private": true,
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Gündemim - Yeni Nesil Kişiselleştirilmiş RSS ve Haber Okuyucu",
   "author": "OmerCanInan",
   "type": "module",
