@@ -64,15 +64,21 @@ export const ensureMLKitModelReady = async () => {
       try {
         await Translation.downloadModel({ language: Language.English });
       } catch (e) {
-        console.warn('[MLKit] İngilizce model indirme hatası:', e);
+        // İndirme başarısız olursa dur — hata yutma
+        console.error('[MLKit] İngilizce model indirme BAŞARISIZ:', e);
+        mlKitStatus.set('error', `İngilizce model indirilemedi: ${e?.message || e}`);
+        return false;
       }
 
       mlKitStatus.set('downloading', 'Türkçe dil paketi indiriliyor...');
       try {
         await Translation.downloadModel({ language: Language.Turkish });
       } catch (e) {
-        console.warn('[MLKit] Türkçe model indirme hatası:', e);
+        console.error('[MLKit] Türkçe model indirme BAŞARISIZ:', e);
+        mlKitStatus.set('error', `Türkçe model indirilemedi: ${e?.message || e}`);
+        return false;
       }
+
 
       // Test çevirisi yap — model gerçekten çalışıyor mu?
       mlKitStatus.set('downloading', 'Model test ediliyor...');

@@ -19,3 +19,18 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# ─────────────────────────────────────────
+# ML Kit Translation — ProGuard Koruma
+# Release build'lerde sınıfların silinmesini engeller
+# ─────────────────────────────────────────
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.internal.mlkit_translate.** { *; }
+-keep class com.google.android.gms.internal.mlkit_common.** { *; }
+-dontwarn com.google.mlkit.**
+-dontwarn com.google.android.gms.internal.mlkit_translate.**
+
+# Capacitor WebView JS Bridge — Silinmesini engelle
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
