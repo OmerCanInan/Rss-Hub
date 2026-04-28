@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { getAppSettings } from '../services/dbService';
+import { translateTextToTurkish } from '../services/translationService';
 // TextToSpeech importu sadece native platformlarda dinamik olarak yapılacak.
 
 const RadioContext = createContext();
@@ -182,8 +183,31 @@ export const RadioProvider = ({ children }) => {
 
     if (!isPlayingRef.current) return;
 
-    // Sadece haberi oku, kaynağı okuma (Kullanıcı isteği)
-    const fullSpeechText = sanitizeForAudio(item.title + ".");
+    // Yabancı dildeki haberleri seslendirilmeden önce Türkçe'ye çevir.
+    // item.translatedTitle: NewsCard tarafından dışarıdan set edilebilir (gelecek iyileştirme için).
+    // Şimdilik: başlık Türkçe değilse çeviri servisini çağır.
+    let titleToSpeak = item.translatedTitle || item.title || '';
+    const settings = getAppSettings();
+    const isTranslationEnabled = settings.autoTranslate !== false;
+
+    if (isTranslationEnabled && titleToSpeak && !item.translatedTitle) {
+      // Başlık Türkçe mi diye basit bir kontrol (Türkçe karakterler veya yaygın kelimeler)
+      const turkishPattern = /[çÇğĞışİöÖşŞüÜ]|(\b(ve|bir|bu|ile|için|de|da|den|dan)\b)/i;
+      const looksLikeTurkish = turkishPattern.test(titleToSpeak);
+
+      if (!looksLikeTurkish) {
+        try {
+          const translated = await translateTextToTurkish(titleToSpeak);
+          if (translated && translated !== titleToSpeak) {
+            titleToSpeak = translated;
+          }
+        } catch (e) {
+          console.warn('[Radio] Çeviri başarısız, orijinal okunacak:', e);
+        }
+      }
+    }
+
+    const fullSpeechText = sanitizeForAudio(titleToSpeak + ".");
 
     const goNext = () => {
       setTimeout(() => {
