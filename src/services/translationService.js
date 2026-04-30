@@ -1,20 +1,22 @@
 // src/services/translationService.js
-// Çeviri zinciri: Cache → Electron IPC → ML Kit → MyMemory (ücretsiz, API key gerektirmez)
+// Çeviri zinciri: Cache → Electron IPC → ML Kit
 //
-// LibreTranslate public instance'ları (libretranslate.de) 403 döndürebiliyor.
-// MyMemory API: https://mymemory.translated.net — günde 5000 kelime ücretsiz, key gerekmez.
+// Kullanıcı isteği doğrultusunda sadece ML Kit desteklenmektedir. 
+// İnternet tabanlı (MyMemory vb.) fallback'ler devre dışı bırakılmıştır.
 
 import { getCachedTranslation, setCachedTranslation } from './translationCacheService';
-
-// MyMemory — ücretsiz, API key gerektirmez, CORS sorunu yok (CapacitorHttp ile)
-const MYMEMORY_URL = 'https://api.mymemory.translated.net/get';
+import { ensureMLKitModelReady } from './mlKitService';
 
 /**
  * ML Kit ile çeviri (Native only) — 8 saniyelik timeout
  */
 const translateWithMLKit = async (text) => {
   try {
-    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return null;
+    if (!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return null;
+
+    // KESİN KONTROL: Eğer model yüklü değilse ASLA translate çağırma, yoksa native SDK zorla indirir!
+    const isReady = await ensureMLKitModelReady(false);
+    if (!isReady) return null;
     const { Translation } = await import('@capacitor-mlkit/translation');
 
     const result = await Promise.race([
@@ -28,45 +30,11 @@ const translateWithMLKit = async (text) => {
   }
 };
 
-/**
- * MyMemory API ile çeviri — CapacitorHttp veya fetch
- */
-const translateWithMyMemory = async (text) => {
-  const url = `${MYMEMORY_URL}?q=${encodeURIComponent(text)}&langpair=en|tr`;
 
-  try {
-    // Mobil: CapacitorHttp (CORS bypass)
-    if (window.Capacitor?.Plugins?.CapacitorHttp) {
-      const response = await window.Capacitor.Plugins.CapacitorHttp.get({
-        url,
-        connectTimeout: 6000,
-        readTimeout: 6000,
-      });
-      if (response.status === 200) {
-        const translated = response.data?.responseData?.translatedText;
-        if (translated && response.data?.responseStatus === 200) return translated;
-      }
-      return null;
-    }
-
-    // Web/Electron: normal fetch
-    const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(tid);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data?.responseStatus === 200) return data?.responseData?.translatedText || null;
-    return null;
-  } catch (err) {
-    console.warn('[MyMemory] Çeviri başarısız:', err?.message);
-    return null;
-  }
-};
 
 /**
  * Ana çeviri fonksiyonu
- * Sıra: Cache → Electron IPC → ML Kit → MyMemory
+ * Sıra: Cache → Electron IPC → ML Kit
  */
 export const translateTextToTurkish = async (text) => {
   if (!text || text.trim() === '') return text;
@@ -88,13 +56,8 @@ export const translateTextToTurkish = async (text) => {
   }
 
   // 3. Mobile Native: ML Kit
-  if (!result && window.Capacitor && window.Capacitor.isNativePlatform()) {
+  if (!result && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
     result = await translateWithMLKit(text);
-  }
-
-  // 4. MyMemory fallback (tüm platformlar)
-  if (!result) {
-    result = await translateWithMyMemory(text);
   }
 
   // Başarılıysa cache'e kaydet

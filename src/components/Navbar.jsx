@@ -3,26 +3,35 @@
 import { useTranslation } from '../context/TranslationContext';
 import { Newspaper, Languages, Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ensureMLKitModelReady } from '../services/mlKitService';
 
 export default function Navbar({ toggleSidebar }) {
   const { isTranslationEnabled, toggleTranslation, hasSeenDownloadWarning, markWarningAsSeen } = useTranslation();
 
   const handleToggle = () => {
-    const isMobile = window.Capacitor && window.Capacitor.isNativePlatform();
+    const isMobile = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
     
     // Eğer çeviri açılıyorsa ve henüz uyarı görülmemişse (sadece mobilde)
     if (!isTranslationEnabled && !hasSeenDownloadWarning && isMobile) {
       const confirmed = window.confirm(
-        "Çeviri özelliğini ilk kez açıyorsunuz. \n\n" +
-        "Mobil cihazlarda daha hızlı ve çevrimdışı çeviri yapabilmek için " +
-        "yaklaşık 30MB boyutunda küçük bir dil paketi bir defaya mahsus indirilecektir. \n\n" +
-        "Devam etmek istiyor musunuz?"
+        "Çeviri özelliğini açıyorsunuz.\n\n" +
+        "Hızlı ve çevrimdışı çeviri yapabilmek için " +
+        "yaklaşık 30MB boyutunda dil paketinin (sadece bir defa) indirilmesi gerekiyor.\n\n" +
+        "İndirilsin mi?"
       );
       
       if (confirmed) {
         markWarningAsSeen();
-        toggleTranslation();
+        ensureMLKitModelReady(); // İndirmeyi başlat (Progress bar görecek)
+        toggleTranslation(); // Çeviriyi açık duruma getir
+      } else {
+        // İptal ederse hiçbir şey yapma, çeviri kapalı kalsın
       }
+    } else if (!isTranslationEnabled && hasSeenDownloadWarning && isMobile) {
+      // Daha önce uyarılmış ama kapatıp açıyor. 
+      // Belki de yarım kalmış bir indirme var, emin olmak için tetikliyoruz.
+      ensureMLKitModelReady();
+      toggleTranslation();
     } else {
       toggleTranslation();
     }

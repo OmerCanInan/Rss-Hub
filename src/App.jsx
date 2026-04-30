@@ -11,12 +11,14 @@ import Legal from './pages/Legal';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { getAppSettings, clearNewsCache } from './services/dbService';
-import { ensureMLKitModelReady } from './services/mlKitService';
+import FirstLaunchSetup from './components/FirstLaunchSetup';
+import TranslationProgressBar from './components/TranslationProgressBar';
 import { AlertTriangle } from 'lucide-react';
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHowToUseOpen, setIsHowToUseOpen] = useState(false);
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [pcNotification, setPcNotification] = useState(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
@@ -58,15 +60,24 @@ function App() {
     };
   }, [handleTouchStart, handleTouchEnd]);
 
-  // Mobil: ML Kit modelini uygulama açılışında sessizce indir
+  // İlk açılışta ML Kit Setup ekranı kontrolü
   useEffect(() => {
-    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-      window.__mlKitBgRunning = true;
-      ensureMLKitModelReady(); // Fire-and-forget, UI'ı bloklamaz
-    }
-    return () => {
-      window.__mlKitBgRunning = false; // Uygulama kapanınca arka plan durur
-    };
+    // Biraz gecikmeli kontrol yapalım ki Capacitor objesi kesin yüklenmiş olsun
+    setTimeout(() => {
+      const isMobile = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+      const hasDoneSetup = localStorage.getItem('gundemim_mlkit_setup_done');
+      
+      if (isMobile && !hasDoneSetup) {
+        setIsSetupOpen(true);
+      } else {
+        // Eğer setup ekranı açılmayacaksa, rehberi kontrol et
+        const hasSeenOnboarding = localStorage.getItem('gundemim_first_start');
+        if (!hasSeenOnboarding) {
+          setIsHowToUseOpen(true);
+          localStorage.setItem('gundemim_first_start', 'done');
+        }
+      }
+    }, 500);
   }, []);
 
   // PC (Electron) Bildirim Dinleyicisi
@@ -120,6 +131,7 @@ function App() {
           <AppContent 
             isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
             isHowToUseOpen={isHowToUseOpen} setIsHowToUseOpen={setIsHowToUseOpen}
+            isSetupOpen={isSetupOpen} setIsSetupOpen={setIsSetupOpen}
             pcNotification={pcNotification}
           />
         </Router>
@@ -129,7 +141,7 @@ function App() {
 }
 
 // Alt bileşende Router context'ine (useLocation) erişebilmek için AppContent oluşturuldu
-function AppContent({ isSidebarOpen, setIsSidebarOpen, isHowToUseOpen, setIsHowToUseOpen, pcNotification }) {
+function AppContent({ isSidebarOpen, setIsSidebarOpen, isHowToUseOpen, setIsHowToUseOpen, isSetupOpen, setIsSetupOpen, pcNotification }) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -142,13 +154,7 @@ function AppContent({ isSidebarOpen, setIsSidebarOpen, isHowToUseOpen, setIsHowT
   }, [location.pathname]);
 
   // --- ONBOARDING (İlk Karşılama) ---
-  useEffect(() => {
-    const hasSeenOnboarding = localStorage.getItem('gundemim_first_start');
-    if (!hasSeenOnboarding) {
-      setIsHowToUseOpen(true);
-      localStorage.setItem('gundemim_first_start', 'done');
-    }
-  }, [setIsHowToUseOpen]);
+  // Rehber mantığı App.jsx'teki FirstLaunchSetup tamamlanınca veya es geçilince tetikleniyor.
 
   // --- PC BAŞLANGIÇ YÖNLENDİRMESİ (Redirect to Discover) ---
   useEffect(() => {
@@ -179,7 +185,22 @@ function AppContent({ isSidebarOpen, setIsSidebarOpen, isHowToUseOpen, setIsHowT
         </div>
       )}
 
+      {isSetupOpen && (
+        <FirstLaunchSetup onComplete={() => {
+          setIsSetupOpen(false);
+          localStorage.setItem('gundemim_mlkit_setup_done', 'true');
+          
+          // Kurulum bittikten sonra rehberi göster
+          const hasSeenOnboarding = localStorage.getItem('gundemim_first_start');
+          if (!hasSeenOnboarding) {
+            setIsHowToUseOpen(true);
+            localStorage.setItem('gundemim_first_start', 'done');
+          }
+        }} />
+      )}
+
       <Navbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <TranslationProgressBar />
       <div className="app-body">
         <Sidebar isOpen={isSidebarOpen} closeSidebar={() => setIsSidebarOpen(false)} />
         

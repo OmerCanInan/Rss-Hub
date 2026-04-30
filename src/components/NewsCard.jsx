@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../context/TranslationContext';
 import { translateTextToTurkish } from '../services/translationService';
-import { mlKitStatus } from '../services/mlKitService';
 import { ImageOff, ExternalLink } from 'lucide-react';
 
 // Renk paleti: her tag için sabit bir renk ata (hash tabanlı)
@@ -32,13 +31,6 @@ export default function NewsCard({ news, onTagClick, activeTag }) {
   const [translatedTitle, setTranslatedTitle] = useState(null);
   const [translatedDesc, setTranslatedDesc] = useState(null);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [mlStatus, setMlStatus] = useState({ state: mlKitStatus.state, message: mlKitStatus.message });
-
-  // ML Kit durum değişikliklerini dinle
-  useEffect(() => {
-    const unsub = mlKitStatus.subscribe((s) => setMlStatus({ ...s }));
-    return unsub;
-  }, []);
 
   // isTranslationEnabled değiştiğinde, eğer önceden çevrilmemişse API'yi çağır:
   useEffect(() => {
@@ -79,13 +71,6 @@ export default function NewsCard({ news, onTagClick, activeTag }) {
   const displayDesc = isTranslationEnabled 
     ? (translatedDesc || (isTranslating ? 'Çevriliyor...' : news.description))
     : news.description;
-
-  // ML Kit durum badge'i (sadece mobilde, yabancı haberde, çeviri açıkken)
-  const isNative = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform();
-  const isAlreadyTurkish = news.tags?.includes('#tr');
-  const showMLBadge = isNative && isTranslationEnabled && !isAlreadyTurkish && mlStatus.state !== 'ready';
-  const mlBadgeColor = mlStatus.state === 'error' ? '#ef4444' : mlStatus.state === 'downloading' ? '#f59e0b' : '#6b7280';
-  const mlBadgeIcon = mlStatus.state === 'error' ? '✕' : mlStatus.state === 'downloading' ? '⬇' : '◌';
 
   const formattedDate = new Intl.DateTimeFormat('tr-TR', {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -139,41 +124,6 @@ export default function NewsCard({ news, onTagClick, activeTag }) {
       </div>
 
       <div className="card-content">
-        {/* ML Kit Durum Badge'i — Profesyonel Görünüm */}
-        {showMLBadge && (
-          <div 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (mlStatus.state === 'idle' || mlStatus.state === 'error') {
-                ensureMLKitModelReady();
-              }
-            }}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              fontSize: '0.65rem', fontWeight: '800',
-              color: mlBadgeColor,
-              background: `${mlBadgeColor}12`,
-              border: `1px solid ${mlBadgeColor}33`,
-              borderRadius: '20px', padding: '3px 10px',
-              marginBottom: '8px',
-              cursor: (mlStatus.state === 'idle' || mlStatus.state === 'error') ? 'pointer' : 'default',
-              transition: 'all 0.2s ease',
-              width: 'fit-content'
-            }}
-          >
-            {mlStatus.state === 'downloading' ? (
-              <div className="ml-badge-content">
-                <span className="ml-spinner"></span>
-                <span>{mlStatus.message || 'İndiriliyor...'}</span>
-              </div>
-            ) : (
-              <div className="ml-badge-content">
-                <span style={{ marginRight: '4px' }}>{mlBadgeIcon}</span>
-                <span>{mlStatus.state === 'error' ? `Hata: ${mlStatus.message}` : mlStatus.state === 'ready' ? 'Hazır ✓' : 'Çeviriyi İndir'}</span>
-              </div>
-            )}
-          </div>
-        )}
 
         <h3 className="card-title">{displayTitle}</h3>
         <p className="card-date">

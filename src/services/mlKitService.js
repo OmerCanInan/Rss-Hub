@@ -31,34 +31,36 @@ const withTimeout = (promise, ms, label) =>
     )
   ]);
 
-export const ensureMLKitModelReady = async () => {
+export const ensureMLKitModelReady = async (allowDownload = true) => {
   if (modelReady)      return true;
   if (downloadPromise) return downloadPromise;
 
-  downloadPromise = (async () => {
+  const performTask = async () => {
     try {
-      if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+      if (!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
         mlKitStatus.set('error', 'Sadece Android/iOS uygulamasında çalışır');
         return false;
       }
 
       const { Translation } = await import('@capacitor-mlkit/translation');
 
-      // ADIM 1: Model zaten indirilmiş mi? Hızlı test çevirisi dene
+      // ADIM 1: Modeller zaten indirilmiş mi kontrol et
       mlKitStatus.set('downloading', 'Çeviri motoru kontrol ediliyor...');
       try {
-        const test = await withTimeout(
-          Translation.translate({ text: 'Hello', sourceLanguage: 'en', targetLanguage: 'tr' }),
-          6000, 'hızlı-test'
-        );
-        if (test?.text && test.text !== 'Hello') {
+        const { languages } = await Translation.getDownloadedModels();
+        const hasEn = languages.includes('en');
+        const hasTr = languages.includes('tr');
+
+        if (hasEn && hasTr) {
           modelReady = true;
-          mlKitStatus.set('ready', `Hazır ✓  ("Hello" → "${test.text}")`);
+          mlKitStatus.set('ready', `Hazır ✓`);
           return true;
         }
-      } catch {
-        // Model yok, indirme aşamasına geç
+      } catch (err) {
+        console.warn('[MLKit] getDownloadedModels hatası:', err);
       }
+
+      if (!allowDownload) return false;
 
       // ADIM 2: İngilizce model indir
       mlKitStatus.set('downloading', 'İngilizce dil paketi indiriliyor (~15 MB)...');
@@ -104,18 +106,26 @@ export const ensureMLKitModelReady = async () => {
       mlKitStatus.set('error', `Hata: ${err?.message || err}`);
       return false;
     }
-  })();
+  };
 
-  return downloadPromise;
+  if (allowDownload) {
+    downloadPromise = performTask();
+    const result = await downloadPromise;
+    downloadPromise = null;
+    return result;
+  } else {
+    return await performTask();
+  }
 };
 
 export const backgroundTranslateNews = async (newsItems) => {
   if (!newsItems?.length)                           return;
-  if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
+  if (!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return;
 
   pruneTranslationCache();
 
-  const ready = await ensureMLKitModelReady();
+  // Arka planda ASLA zorla indirme başlatma. Sadece inmişse kullan.
+  const ready = await ensureMLKitModelReady(false);
   if (!ready) return;
 
   const { Translation } = await import('@capacitor-mlkit/translation');
