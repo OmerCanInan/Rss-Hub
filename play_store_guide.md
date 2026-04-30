@@ -26,13 +26,13 @@ Play Console → **Uygulama içeriği → Veri güvenliği → Başlayın**
 |------|-------|
 | Uygulamanız veri topluyor mu? | **Hayır** — "Bu uygulama herhangi bir veri toplamaz" seçeneğini işaretleyin |
 
-> Groq veya LibreTranslate kullansanız bile: bu veriler *siz tarafınızdan* üçüncü tarafa gönderilir, uygulama *toplamaz*.
+> Groq kullandığınızda bile: bu veriler *siz tarafınızdan* üçüncü tarafa gönderilir, uygulama *toplamaz*.
 
 ### Bölüm 2: Güvenlik uygulamaları
 
 | Soru | Cevap | Neden |
 |------|-------|-------|
-| Veriler aktarım sırasında şifreleniyor mu? | **Evet** | Tüm RSS, Groq ve LibreTranslate bağlantıları HTTPS/TLS kullanır |
+| Veriler aktarım sırasında şifreleniyor mu? | **Evet** | Tüm RSS ve Groq bağlantıları HTTPS/TLS kullanır |
 | Kullanıcı verileri silinmesi mümkün mü? | **Evet** | Kullanıcı uygulama verilerini uygulama içinden silebilir |
 
 ### Bölüm 3: Veri türleri (hiçbirini seçmeyin)
@@ -49,4 +49,4 @@ Uygulamanız aşağıdaki kategorilerden **hiçbirini** toplamadığından kutul
 - [ ] Veri güvenliği formu kaydedildi
 - [x] `allowBackup="false"` AndroidManifest.xml'de (yapıldı)
 - [x] Groq API key Capacitor Preferences ile saklanıyor (yapıldı)
-- [x] LibreTranslate'e geçiş yapıldı (yapıldı)
+- [x] Tüm ara sunucular ve LibreTranslate kaldırıldı, doğrudan erişime geçildi (yapıldı)

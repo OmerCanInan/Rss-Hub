@@ -1,6 +1,6 @@
 # Privacy Policy / Gizlilik Politikası
 
-**Last updated / Son Güncelleme: April 24, 2026**
+**Last updated / Son Güncelleme: April 30, 2026**
 
 ---
 
@@ -13,7 +13,10 @@ Gündemim is designed to work as a local RSS reader. We **do not collect** any p
 
 ### 2. AI & Translation Features
 *   **AI Summary:** Headlines and descriptions are sent to Groq/Google API for summarization. This data is not linked to your identity.
-*   **Translation:** We use **Google ML Kit** for on-device translation on mobile devices (no data leaves the device). As a fallback and on web/desktop platforms, we use **LibreTranslate** (an open-source, privacy-friendly translation service).
+*   **Translation:** 
+    *   **Mobile:** We use **Google ML Kit** for on-device translation (no data leaves the device). 
+    *   **Desktop/PC:** We use an informal **Google Translate** fallback via Electron IPC.
+*   **Data Fetching:** All news content is fetched **directly** from the RSS sources provided by the user. We do not use any intermediate proxy servers or third-party data collection services for fetching news.
 
 ### 3. Storage
 All data is stored in your device's local storage. Deleting the application will remove all stored data.
@@ -32,7 +35,10 @@ Gündemim, yerel bir RSS okuyucu olarak tasarlanmıştır. İsim, e-posta adresi
 
 ### 2. Yapay Zeka ve Çeviri Özellikleri
 *   **AI Özeti:** Haber başlıkları ve açıklamaları, özetleme için Groq/Google API'lerine gönderilir. Bu veriler kimliğinizle ilişkilendirilmez.
-*   **Çeviri:** Mobil cihazlarda cihaz içi çeviri için **Google ML Kit** kullanıyoruz (veriler cihazdan çıkmaz). Yedek olarak ve web/masaüstü platformlarında **LibreTranslate** (açık kaynaklı, gizlilik dostu bir çeviri servisi) kullanıyoruz.
+*   **Çeviri:** 
+    *   **Mobil:** Cihaz içi çeviri için **Google ML Kit** kullanıyoruz (veriler cihazdan çıkmaz).
+    *   **Masaüstü/PC:** Electron IPC üzerinden **Google Çeviri** (informal API) desteği sunulur.
+*   **Veri Erişimi:** Tüm haber içerikleri, kullanıcının eklediği RSS kaynaklarından **doğrudan** çekilir. Haberleri çekmek için herhangi bir ara sunucu (proxy) veya üçüncü taraf veri toplama servisi kullanılmaz.
 
 ### 3. Veri Saklama
 Tüm veriler cihazınızın yerel depolama alanında saklanır. Uygulamanın silinmesi tüm verileri de silecek.

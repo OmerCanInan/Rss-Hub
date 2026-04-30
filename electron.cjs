@@ -156,9 +156,8 @@ ipcMain.handle('fetch-rss', async (event, url, timeoutMs = 20000) => {
   }
 });
 
-// IPC: Translation with multiple fallbacks and silent error handling
+// IPC: Translation with single fallback (Google Translate Informal)
 ipcMain.handle('translate-text', async (event, text, targetLang = 'tr') => {
-  // Option 1: Google Translate (Informal API)
   try {
     const trUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
     const response = await fetch(trUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
@@ -170,34 +169,11 @@ ipcMain.handle('translate-text', async (event, text, targetLang = 'tr') => {
         if (translatedText) return translatedText;
       }
     }
-  } catch (err) { /* Silent fallback */ }
-
-  // Option 2: LibreTranslate Cluster
-  const LIBRE_ENDPOINTS = [
-    'https://libretranslate.de/translate',
-    'https://de.libretranslate.com/translate',
-    'https://translate.terraprint.co/translate'
-  ];
-
-  for (const endpoint of LIBRE_ENDPOINTS) {
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q: text, source: 'auto', target: 'tr', format: 'text' })
-      });
-      
-      if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await response.json();
-          if (data?.translatedText) return data.translatedText;
-        }
-      }
-    } catch (err) { /* Silent skip next */ }
+  } catch (err) { 
+    console.warn('[Electron] Translation fallback failed:', err.message);
   }
   
-  return text;
+  return text; // Return original text if translation fails
 });
 
 app.userAgentFallback = "Gundemim/1.1 (RSS Reader; +https://github.com/OmerCanInan/Gundemim)";

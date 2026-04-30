@@ -409,14 +409,10 @@ export const fetchRssFeed = async (url, signal = null, timeoutMs = 10000) => {
         }
         xmlText = await response.text();
       } catch (err) {
-        console.warn(`Direct fetch failed for ${cleanUrl}, trying CORS proxy...`, err);
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
-        const proxyResponse = await fetch(proxyUrl, fetchOptions);
-
-        if (!proxyResponse.ok) {
-          throw new Error(`CORS Proxy Hatası (${proxyResponse.status})`);
-        }
-        xmlText = await proxyResponse.text();
+        // CORS Proxy (allorigins) güvenilirlik ve gizlilik gerekçesiyle kaldırıldı.
+        // Masaüstü ve Mobil sürümlerde zaten native fetch kullanıldığı için bu bölüme nadiren düşülür.
+        console.error(`Direct fetch failed for ${cleanUrl}:`, err);
+        throw new Error(`Haber kaynağına bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.`);
       }
     }
 
